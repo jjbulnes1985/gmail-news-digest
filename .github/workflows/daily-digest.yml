@@ -25,10 +25,15 @@ jobs:
         run: npm ci
 
       - name: Escribir credenciales OAuth2
+        env:
+          OAUTH2_CREDENTIALS: ${{ secrets.OAUTH2_CREDENTIALS }}
+          OAUTH2_TOKEN: ${{ secrets.OAUTH2_TOKEN }}
         run: |
           mkdir -p credentials tokens
-          echo '${{ secrets.OAUTH2_CREDENTIALS }}' > credentials/oauth2.json
-          echo '${{ secrets.OAUTH2_TOKEN }}'       > tokens/token.json
+          printf '%s' "$OAUTH2_CREDENTIALS" > credentials/oauth2.json
+          printf '%s' "$OAUTH2_TOKEN"       > tokens/token.json
+          echo "--- token.json escrito (primeros 50 chars):"
+          head -c 50 tokens/token.json
 
       - name: Crear .env
         run: |
