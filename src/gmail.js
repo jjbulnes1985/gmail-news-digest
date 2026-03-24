@@ -10,7 +10,7 @@ const readline = require('readline');
 const { google } = require('googleapis');
 let pdfParse;
 try { pdfParse = require('pdf-parse'); } catch (_) { pdfParse = null; }
-const { stripHtml, log, buildAfterEpoch } = require('./utils');
+const { stripHtml, log, getLastRunEpoch } = require('./utils');
 
 // Permisos de solo lectura (principio de mínimo privilegio)
 const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
@@ -227,7 +227,7 @@ async function getEmails(auth) {
   const gmailLabel   = process.env.GMAIL_LABEL    || 'noticias';
   const hoursBack    = parseInt(process.env.HOURS_LOOKBACK, 10) || 24;
   const maxResults   = parseInt(process.env.MAX_EMAILS_PER_RUN, 10) || 30;
-  const afterEpoch   = buildAfterEpoch(hoursBack);
+  const afterEpoch   = getLastRunEpoch(hoursBack);
 
   const query = `label:${gmailLabel} after:${afterEpoch}`;
   log('INFO', `Buscando emails con query: "${query}" (máx. ${maxResults})`);

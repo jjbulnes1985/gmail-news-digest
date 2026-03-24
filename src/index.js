@@ -14,7 +14,7 @@ const cron = require('node-cron');
 const { authorize, getEmails } = require('./gmail');
 const { summarize }            = require('./summarizer');
 const { sendDigest }           = require('./mailer');
-const { log }                  = require('./utils');
+const { log, saveLastRun }     = require('./utils');
 
 // Leer flags de línea de comandos
 const args      = process.argv.slice(2);
@@ -69,6 +69,7 @@ async function runDigest() {
     return;
   }
 
+  saveLastRun();
   log('INFO', 'Ciclo completado exitosamente.');
 }
 

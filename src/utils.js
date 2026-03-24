@@ -84,4 +84,34 @@ function buildAfterEpoch(hoursBack) {
   return Math.floor((Date.now() - hoursBack * 3600 * 1000) / 1000);
 }
 
-module.exports = { stripHtml, log, formatDate, buildAfterEpoch };
+const fs   = require('fs');
+const path = require('path');
+const LAST_RUN_PATH = path.join(__dirname, '..', 'last_run.json');
+
+/**
+ * Devuelve el timestamp Unix (segundos) desde la última ejecución exitosa.
+ * Si no existe registro previo, cae al fallback de horas configurado.
+ * @param {number} fallbackHours - Horas hacia atrás si no hay registro previo
+ * @returns {number} Timestamp en segundos
+ */
+function getLastRunEpoch(fallbackHours) {
+  try {
+    const data = JSON.parse(fs.readFileSync(LAST_RUN_PATH, 'utf-8'));
+    if (data.lastRunAt) {
+      log('INFO', `Usando última ejecución exitosa: ${new Date(data.lastRunAt).toISOString()}`);
+      return Math.floor(data.lastRunAt / 1000);
+    }
+  } catch (_) { /* no existe, usar fallback */ }
+  log('INFO', `Sin registro previo. Usando ventana de ${fallbackHours} horas.`);
+  return buildAfterEpoch(fallbackHours);
+}
+
+/**
+ * Guarda el timestamp de la ejecución exitosa actual en last_run.json.
+ */
+function saveLastRun() {
+  fs.writeFileSync(LAST_RUN_PATH, JSON.stringify({ lastRunAt: Date.now() }, null, 2));
+  log('INFO', 'Timestamp de última ejecución guardado en last_run.json');
+}
+
+module.exports = { stripHtml, log, formatDate, buildAfterEpoch, getLastRunEpoch, saveLastRun };
