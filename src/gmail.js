@@ -6,7 +6,6 @@
 
 const fs       = require('fs');
 const path     = require('path');
-const readline = require('readline');
 const { google } = require('googleapis');
 let pdfParse;
 try { pdfParse = require('pdf-parse'); } catch (_) { pdfParse = null; }
@@ -37,8 +36,8 @@ async function authorize() {
   }
 
   // Las credenciales de "Desktop App" vienen bajo la clave "installed"
-  const { client_id, client_secret, redirect_uris } = credentials.installed || credentials.web;
-  const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+  const { client_id, client_secret } = credentials.installed || credentials.web;
+  const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, 'http://localhost:8080');
 
   // Escuchar renovaciones de token para mantener token.json actualizado
   oAuth2Client.on('tokens', (tokens) => {
@@ -67,32 +66,55 @@ async function authorize() {
 }
 
 /**
- * Guía al usuario por el flujo de autorización OAuth2 de consola (primera vez).
+ * Autoriza OAuth2 abriendo un servidor local en el puerto 8080 para capturar
+ * el código de autorización automáticamente (reemplaza el flujo OOB deprecado).
  * @param {google.auth.OAuth2} oAuth2Client
  */
 async function getNewToken(oAuth2Client) {
+  const http = require('http');
+
   const authUrl = oAuth2Client.generateAuthUrl({
-    access_type: 'offline', // solicita refresh_token para poder renovar sin interacción
+    access_type: 'offline', // solicita refresh_token para renovar sin interacción
     scope: SCOPES,
   });
 
   console.log('\n─────────────────────────────────────────────────────');
   console.log('AUTORIZACIÓN REQUERIDA');
   console.log('─────────────────────────────────────────────────────');
-  console.log('1. Abrí esta URL en tu navegador:\n');
+  console.log('Abrí esta URL en tu navegador:\n');
   console.log('   ' + authUrl);
-  console.log('\n2. Autorizá la aplicación con tu cuenta de Gmail.');
-  console.log('3. Copiá el código de autorización que aparece.\n');
+  console.log('\nAutorizá con tu cuenta de Gmail.');
+  console.log('El código se captura automáticamente — no hace falta copiarlo.\n');
 
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
+  // Servidor local que espera el redirect de Google con el código
+  const code = await new Promise((resolve, reject) => {
+    const server = http.createServer((req, res) => {
+      const urlObj = new URL(req.url, 'http://localhost:8080');
+      const code  = urlObj.searchParams.get('code');
+      const error = urlObj.searchParams.get('error');
 
-  const code = await new Promise((resolve) => {
-    rl.question('Pegá el código de autorización aquí: ', (answer) => {
-      rl.close();
-      resolve(answer.trim());
+      if (error) {
+        res.writeHead(400);
+        res.end('<h1>Error: ' + error + '</h1>');
+        server.close();
+        reject(new Error('Autorización denegada: ' + error));
+        return;
+      }
+
+      if (code) {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end('<h1>¡Autorización completada!</h1><p>Podés cerrar esta pestaña y volver a la terminal.</p>');
+        server.close();
+        resolve(code);
+      }
+    });
+
+    server.listen(8080, 'localhost', () => {
+      log('INFO', 'Esperando autorización en http://localhost:8080 ...');
+    });
+
+    server.on('error', (err) => {
+      reject(new Error('No se pudo iniciar el servidor local en puerto 8080: ' + err.message));
     });
   });
 
