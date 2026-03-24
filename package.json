@@ -1,0 +1,21 @@
+{
+  "name": "gmail-news-digest",
+  "version": "1.0.0",
+  "description": "Resumen diario de noticias: lee Gmail, genera resumen con Claude y lo envía por email",
+  "main": "src/index.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "now": "node src/index.js --run-now",
+    "auth": "node src/index.js --auth-only"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.40.0",
+    "dotenv": "^16.4.0",
+    "googleapis": "^144.0.0",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.9.0"
+  }
+}

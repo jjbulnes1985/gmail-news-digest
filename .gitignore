@@ -1,0 +1,10 @@
+# Credenciales y tokens OAuth2 (nunca subir al repositorio)
+.env
+credentials/
+tokens/
+
+# Dependencias de Node.js
+node_modules/
+
+# Logs
+*.log
