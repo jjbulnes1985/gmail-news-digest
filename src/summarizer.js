@@ -1,10 +1,10 @@
 'use strict';
 
 /**
- * summarizer.js — Genera el resumen de noticias usando la API de Claude (Anthropic)
+ * summarizer.js — Genera el resumen de noticias usando Gemini Flash (Google)
  */
 
-const Anthropic = require('@anthropic-ai/sdk');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { log } = require('./utils');
 
 // Prompt de sistema: define el rol y las reglas del analista
@@ -18,13 +18,17 @@ Reglas:
 
 /**
  * Genera el informe de noticias a partir de un array de emails.
- * Hace UNA sola llamada a la API de Claude con todos los emails concatenados.
+ * Hace UNA sola llamada a la API de Gemini con todos los emails concatenados.
  *
  * @param {Array<{subject: string, from: string, date: string, body: string}>} emails
- * @returns {Promise<string>} Texto del informe generado por Claude
+ * @returns {Promise<string>} Texto del informe generado por Gemini
  */
 async function summarize(emails) {
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-1.5-flash',
+    systemInstruction: SYSTEM_PROMPT,
+  });
 
   // Fecha de análisis en formato legible en español
   const today = new Date().toLocaleDateString('es-AR', {
@@ -66,31 +70,18 @@ async function summarize(emails) {
   userPrompt += `Al final, incluir una sección "ALERTAS DEL DÍA" con máximo 3 puntos `;
   userPrompt += `sobre los riesgos o movimientos más relevantes del informe.`;
 
-  log('INFO', `Enviando ${emails.length} email(s) a Claude para generar el resumen...`);
+  log('INFO', `Enviando ${emails.length} email(s) a Gemini Flash para generar el resumen...`);
 
-  // Llamada a la API de Claude
-  const message = await client.messages.create({
-    model:      'claude-opus-4-5',
-    max_tokens: 8000,
-    system:     SYSTEM_PROMPT,
-    messages: [
-      { role: 'user', content: userPrompt },
-    ],
-  });
+  const result = await model.generateContent(userPrompt);
+  const text = result.response.text();
 
-  // Verificar que la respuesta contiene texto
-  if (!message.content || message.content.length === 0) {
-    throw new Error('La API de Claude devolvió una respuesta vacía.');
+  if (!text) {
+    throw new Error('Gemini devolvió una respuesta vacía.');
   }
 
-  const firstBlock = message.content[0];
-  if (firstBlock.type !== 'text') {
-    throw new Error(`Tipo de respuesta inesperado de Claude: ${firstBlock.type}`);
-  }
+  log('INFO', 'Resumen generado por Gemini Flash.');
 
-  log('INFO', `Resumen generado. Tokens usados — entrada: ${message.usage.input_tokens}, salida: ${message.usage.output_tokens}`);
-
-  return firstBlock.text;
+  return text;
 }
 
 module.exports = { summarize };
