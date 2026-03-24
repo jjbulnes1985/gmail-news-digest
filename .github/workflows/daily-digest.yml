@@ -22,32 +22,23 @@ jobs:
           node-version: '20'
 
       - name: Instalar dependencias
-        working-directory: gmail-news-digest
         run: npm ci
 
       - name: Escribir credenciales OAuth2
-        working-directory: gmail-news-digest
         run: |
           mkdir -p credentials tokens
           echo '${{ secrets.OAUTH2_CREDENTIALS }}' > credentials/oauth2.json
           echo '${{ secrets.OAUTH2_TOKEN }}'       > tokens/token.json
 
       - name: Crear .env
-        working-directory: gmail-news-digest
         run: |
-          cat > .env <<'ENVEOF'
-          GMAIL_LABEL=${{ secrets.GMAIL_LABEL }}
-          GMAIL_USER=${{ secrets.GMAIL_USER }}
-          DIGEST_RECIPIENT=${{ secrets.DIGEST_RECIPIENT }}
-          GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
-          SMTP_HOST=smtp.gmail.com
-          SMTP_PORT=587
-          SMTP_USER=${{ secrets.SMTP_USER }}
-          SMTP_PASS=${{ secrets.SMTP_PASS }}
-          MAX_EMAILS_PER_RUN=30
-          HOURS_LOOKBACK=24
-          ENVEOF
+          printf 'GMAIL_LABEL=%s\nGMAIL_USER=%s\nDIGEST_RECIPIENT=%s\nGEMINI_API_KEY=%s\nSMTP_HOST=smtp.gmail.com\nSMTP_PORT=587\nSMTP_USER=%s\nSMTP_PASS=%s\nMAX_EMAILS_PER_RUN=30\nHOURS_LOOKBACK=24\n' \
+            '${{ secrets.GMAIL_LABEL }}' \
+            '${{ secrets.GMAIL_USER }}' \
+            '${{ secrets.DIGEST_RECIPIENT }}' \
+            '${{ secrets.GEMINI_API_KEY }}' \
+            '${{ secrets.SMTP_USER }}' \
+            '${{ secrets.SMTP_PASS }}' > .env
 
       - name: Ejecutar pipeline de noticias
-        working-directory: gmail-news-digest
         run: npm run now
