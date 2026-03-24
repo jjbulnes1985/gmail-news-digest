@@ -8,6 +8,7 @@ const fs       = require('fs');
 const path     = require('path');
 const readline = require('readline');
 const { google } = require('googleapis');
+const pdfParse = require('pdf-parse');
 const { stripHtml, log, buildAfterEpoch } = require('./utils');
 
 // Permisos de solo lectura (principio de mínimo privilegio)
@@ -164,6 +165,57 @@ function parseBody(payload) {
 }
 
 /**
+ * Extrae adjuntos PDF de un payload de Gmail y devuelve su texto concatenado.
+ * @param {object} gmail - Cliente de Gmail
+ * @param {string} messageId - ID del mensaje
+ * @param {object} payload - payload del mensaje
+ * @returns {Promise<string>} Texto extraído de los PDFs
+ */
+async function extractPdfAttachments(gmail, messageId, payload) {
+  const pdfTexts = [];
+
+  async function processParts(parts) {
+    if (!parts) return;
+    for (const part of parts) {
+      const mimeType = (part.mimeType || '').toLowerCase();
+
+      if (mimeType === 'application/pdf' && part.body) {
+        try {
+          let data = part.body.data;
+
+          // Si el PDF está en un attachment separado, descargarlo
+          if (!data && part.body.attachmentId) {
+            const attachment = await gmail.users.messages.attachments.get({
+              userId: 'me',
+              messageId,
+              id: part.body.attachmentId,
+            });
+            data = attachment.data.data;
+          }
+
+          if (data) {
+            const buffer = Buffer.from(data.replace(/-/g, '+').replace(/_/g, '/'), 'base64');
+            const parsed = await pdfParse(buffer);
+            if (parsed.text && parsed.text.trim()) {
+              const filename = part.filename || 'adjunto.pdf';
+              pdfTexts.push(`[PDF: ${filename}]\n${parsed.text.trim()}`);
+              log('INFO', `PDF procesado: ${filename}`);
+            }
+          }
+        } catch (err) {
+          log('WARN', `No se pudo leer PDF adjunto: ${err.message}`);
+        }
+      } else if (part.parts) {
+        await processParts(part.parts);
+      }
+    }
+  }
+
+  await processParts(payload.parts);
+  return pdfTexts.join('\n\n');
+}
+
+/**
  * Lee los emails del label configurado en Gmail.
  * @param {google.auth.OAuth2} auth - Cliente OAuth2 autenticado
  * @returns {Promise<Array<{subject, from, date, body}>>} Lista de emails
@@ -219,7 +271,13 @@ async function getEmails(auth) {
       const date    = getHeader('Date')    || '';
 
       // Extraer cuerpo del mensaje
-      const body = parseBody(payload);
+      let body = parseBody(payload);
+
+      // Extraer texto de adjuntos PDF (si los hay)
+      const pdfText = await extractPdfAttachments(gmail, msg.id, payload);
+      if (pdfText) {
+        body = body ? `${body}\n\n${pdfText}` : pdfText;
+      }
 
       emails.push({ subject, from, date, body });
     } catch (err) {

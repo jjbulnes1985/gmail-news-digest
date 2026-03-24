@@ -71,7 +71,7 @@ async function summarize(emails) {
   // Llamada a la API de Claude
   const message = await client.messages.create({
     model:      'claude-opus-4-5',
-    max_tokens: 4000,
+    max_tokens: 8000,
     system:     SYSTEM_PROMPT,
     messages: [
       { role: 'user', content: userPrompt },
