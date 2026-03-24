@@ -1,63 +1,57 @@
-name: Daily News Digest
+name: Gmail News Digest
 
 on:
   schedule:
-    - cron: '30 11 * * *'  # 8:30 AM Argentina (UTC-3)
-  workflow_dispatch:        # permite ejecutar manualmente desde GitHub
-
-permissions:
-  contents: write           # necesario para commitear last_run.json
+    - cron: '30 11 * * *'   # 8:30 AM Chile verano (UTC-3) / 7:30 AM Chile invierno (UTC-4)
+  workflow_dispatch:         # permite ejecutar manualmente desde GitHub
 
 jobs:
-  run-digest:
+  digest:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install dependencies
+      - name: Instalar dependencias
         run: npm install
+        working-directory: gmail-news-digest
 
-      - name: Create credentials file
+      - name: Escribir archivo .env
+        run: echo "$ENV_FILE" > .env
+        working-directory: gmail-news-digest
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+
+      - name: Escribir credenciales OAuth2
         run: |
           mkdir -p credentials
-          echo '${{ secrets.OAUTH2_CREDENTIALS }}' > credentials/oauth2.json
+          echo "$OAUTH_CREDENTIALS" > credentials/oauth2.json
+        working-directory: gmail-news-digest
+        env:
+          OAUTH_CREDENTIALS: ${{ secrets.OAUTH_CREDENTIALS }}
 
-      - name: Create token file
+      - name: Escribir token OAuth2
         run: |
           mkdir -p tokens
-          echo '${{ secrets.OAUTH2_TOKEN }}' > tokens/token.json
+          echo "$OAUTH_TOKEN" > tokens/token.json
+        working-directory: gmail-news-digest
+        env:
+          OAUTH_TOKEN: ${{ secrets.OAUTH_TOKEN }}
 
-      - name: Create .env file
-        run: |
-          cat > .env << EOF
-          GMAIL_LABEL=noticias
-          GMAIL_USER=${{ secrets.GMAIL_USER }}
-          DIGEST_RECIPIENT=${{ secrets.DIGEST_RECIPIENT }}
-          GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
-          CRON_SCHEDULE=30 8 * * *
-          CRON_TIMEZONE=America/Buenos_Aires
-          MAX_EMAILS_PER_RUN=30
-          HOURS_LOOKBACK=24
-          SMTP_HOST=smtp.gmail.com
-          SMTP_PORT=587
-          SMTP_USER=${{ secrets.GMAIL_USER }}
-          SMTP_PASS=${{ secrets.SMTP_PASS }}
-          EOF
-
-      - name: Run digest
+      - name: Ejecutar pipeline
         run: node src/index.js --run-now
+        working-directory: gmail-news-digest
 
-      - name: Save last run timestamp
+      - name: Guardar last_run.json
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add last_run.json
-          git diff --staged --quiet || git commit -m "chore: update last_run.json [skip ci]"
+          git add gmail-news-digest/last_run.json
+          git diff --staged --quiet || git commit -m "chore: update last run timestamp"
           git push
