@@ -8,7 +8,8 @@ const fs       = require('fs');
 const path     = require('path');
 const readline = require('readline');
 const { google } = require('googleapis');
-const pdfParse = require('pdf-parse');
+let pdfParse;
+try { pdfParse = require('pdf-parse'); } catch (_) { pdfParse = null; }
 const { stripHtml, log, buildAfterEpoch } = require('./utils');
 
 // Permisos de solo lectura (principio de mínimo privilegio)
@@ -193,7 +194,7 @@ async function extractPdfAttachments(gmail, messageId, payload) {
             data = attachment.data.data;
           }
 
-          if (data) {
+          if (data && pdfParse) {
             const buffer = Buffer.from(data.replace(/-/g, '+').replace(/_/g, '/'), 'base64');
             const parsed = await pdfParse(buffer);
             if (parsed.text && parsed.text.trim()) {
