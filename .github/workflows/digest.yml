@@ -16,15 +16,13 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Instalar dependencias
         run: npm install
-        working-directory: gmail-news-digest
 
       - name: Escribir archivo .env
         run: echo "$ENV_FILE" > .env
-        working-directory: gmail-news-digest
         env:
           ENV_FILE: ${{ secrets.ENV_FILE }}
 
@@ -32,7 +30,6 @@ jobs:
         run: |
           mkdir -p credentials
           echo "$OAUTH_CREDENTIALS" > credentials/oauth2.json
-        working-directory: gmail-news-digest
         env:
           OAUTH_CREDENTIALS: ${{ secrets.OAUTH_CREDENTIALS }}
 
@@ -40,18 +37,16 @@ jobs:
         run: |
           mkdir -p tokens
           echo "$OAUTH_TOKEN" > tokens/token.json
-        working-directory: gmail-news-digest
         env:
           OAUTH_TOKEN: ${{ secrets.OAUTH_TOKEN }}
 
       - name: Ejecutar pipeline
         run: node src/index.js --run-now
-        working-directory: gmail-news-digest
 
       - name: Guardar last_run.json
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add gmail-news-digest/last_run.json
+          git add last_run.json
           git diff --staged --quiet || git commit -m "chore: update last run timestamp"
           git push
