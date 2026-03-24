@@ -1,0 +1,52 @@
+name: Daily News Digest
+
+on:
+  schedule:
+    - cron: '30 11 * * *'  # 8:30 AM Argentina (UTC-3)
+  workflow_dispatch:        # permite ejecutar manualmente desde GitHub
+
+jobs:
+  run-digest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Create credentials file
+        run: |
+          mkdir -p credentials
+          echo '${{ secrets.OAUTH2_CREDENTIALS }}' > credentials/oauth2.json
+
+      - name: Create token file
+        run: |
+          mkdir -p tokens
+          echo '${{ secrets.OAUTH2_TOKEN }}' > tokens/token.json
+
+      - name: Create .env file
+        run: |
+          cat > .env << EOF
+          GMAIL_LABEL=noticias
+          GMAIL_USER=${{ secrets.GMAIL_USER }}
+          DIGEST_RECIPIENT=${{ secrets.DIGEST_RECIPIENT }}
+          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+          CRON_SCHEDULE=30 8 * * *
+          CRON_TIMEZONE=America/Buenos_Aires
+          MAX_EMAILS_PER_RUN=30
+          HOURS_LOOKBACK=24
+          SMTP_HOST=smtp.gmail.com
+          SMTP_PORT=587
+          SMTP_USER=${{ secrets.GMAIL_USER }}
+          SMTP_PASS=${{ secrets.SMTP_PASS }}
+          EOF
+
+      - name: Run digest
+        run: node src/index.js --run-now
