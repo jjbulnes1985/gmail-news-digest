@@ -1,0 +1,55 @@
+name: Resumen Diario de Noticias
+
+on:
+  schedule:
+    # 11:30 UTC = 8:30 AM hora Argentina (UTC-3, sin horario de verano)
+    - cron: '30 11 * * *'
+  workflow_dispatch:
+    # Permite ejecutarlo manualmente desde GitHub (útil para probar o reenviar)
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: gmail-news-digest/package-lock.json
+
+      - name: Instalar dependencias
+        working-directory: gmail-news-digest
+        run: npm ci
+
+      - name: Escribir credenciales OAuth2
+        working-directory: gmail-news-digest
+        run: |
+          mkdir -p credentials tokens
+          echo '${{ secrets.OAUTH2_CREDENTIALS }}' > credentials/oauth2.json
+          echo '${{ secrets.OAUTH2_TOKEN }}'       > tokens/token.json
+
+      - name: Crear .env
+        working-directory: gmail-news-digest
+        run: |
+          cat > .env <<'ENVEOF'
+          GMAIL_LABEL=${{ secrets.GMAIL_LABEL }}
+          GMAIL_USER=${{ secrets.GMAIL_USER }}
+          DIGEST_RECIPIENT=${{ secrets.DIGEST_RECIPIENT }}
+          GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+          SMTP_HOST=smtp.gmail.com
+          SMTP_PORT=587
+          SMTP_USER=${{ secrets.SMTP_USER }}
+          SMTP_PASS=${{ secrets.SMTP_PASS }}
+          MAX_EMAILS_PER_RUN=30
+          HOURS_LOOKBACK=24
+          ENVEOF
+
+      - name: Ejecutar pipeline de noticias
+        working-directory: gmail-news-digest
+        run: npm run now
