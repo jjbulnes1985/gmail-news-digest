@@ -73,7 +73,7 @@ async function summarize(emails) {
   log('INFO', `Enviando ${emails.length} email(s) a Gemini Flash para generar el resumen...`);
 
   const MAX_RETRIES = 3;
-  const RETRY_DELAY_MS = 10000; // 10 segundos entre intentos
+  const RETRY_DELAY_MS = 15 * 60 * 1000; // 15 minutos entre intentos
 
   let lastError;
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
