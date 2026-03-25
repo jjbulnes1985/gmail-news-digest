@@ -72,16 +72,29 @@ async function summarize(emails) {
 
   log('INFO', `Enviando ${emails.length} email(s) a Gemini Flash para generar el resumen...`);
 
-  const result = await model.generateContent(userPrompt);
-  const text = result.response.text();
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY_MS = 10000; // 10 segundos entre intentos
 
-  if (!text) {
-    throw new Error('Gemini devolvió una respuesta vacía.');
+  let lastError;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const result = await model.generateContent(userPrompt);
+      const text = result.response.text();
+
+      if (!text) throw new Error('Gemini devolvió una respuesta vacía.');
+
+      log('INFO', 'Resumen generado por Gemini Flash.');
+      return text;
+    } catch (err) {
+      lastError = err;
+      if (attempt < MAX_RETRIES) {
+        log('WARN', `Intento ${attempt}/${MAX_RETRIES} fallido: ${err.message}. Reintentando en ${RETRY_DELAY_MS / 1000}s...`);
+        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+      }
+    }
   }
 
-  log('INFO', 'Resumen generado por Gemini Flash.');
-
-  return text;
+  throw lastError;
 }
 
 module.exports = { summarize };
