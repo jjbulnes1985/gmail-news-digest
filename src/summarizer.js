@@ -28,6 +28,9 @@ async function summarize(emails) {
   const model = genAI.getGenerativeModel({
     model: 'gemini-2.5-flash',
     systemInstruction: SYSTEM_PROMPT,
+    generationConfig: {
+      maxOutputTokens: 65536,
+    },
   });
 
   // Fecha de análisis en formato legible en español
