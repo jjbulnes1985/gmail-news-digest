@@ -35,12 +35,16 @@ async function summarize(emails) {
   let userPrompt = `Fecha de análisis: ${today}\n\n`;
   userPrompt += `A continuación se presentan ${emails.length} correo(s) del label "noticias":\n\n`;
 
+  const MAX_BODY_CHARS = 3000;
   emails.forEach((email, i) => {
+    const body = email.body.length > MAX_BODY_CHARS
+      ? email.body.slice(0, MAX_BODY_CHARS) + '\n[...contenido truncado...]'
+      : email.body;
     userPrompt += `--- EMAIL ${i + 1} ---\n`;
     userPrompt += `Asunto: ${email.subject}\n`;
     userPrompt += `De: ${email.from}\n`;
     userPrompt += `Fecha: ${email.date}\n`;
-    userPrompt += `Contenido:\n${email.body}\n\n`;
+    userPrompt += `Contenido:\n${body}\n\n`;
   });
 
   userPrompt += `--- FIN DE CORREOS ---\n\n`;
