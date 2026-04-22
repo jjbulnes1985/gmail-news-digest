@@ -1,13 +1,12 @@
 'use strict';
 
 /**
- * summarizer.js — Genera el resumen de noticias usando Gemini Flash (Google)
+ * summarizer.js — Genera el resumen de noticias usando Groq (Llama 3.3 70B)
  */
 
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Groq = require('groq-sdk');
 const { log } = require('./utils');
 
-// Prompt de sistema: define el rol y las reglas del analista
 const SYSTEM_PROMPT = `Eres un analista de noticias y mercados especializado en inversionistas de Latinoamérica.
 Tu tarea es procesar una lista de correos del label "noticias" y generar un informe diario.
 Reglas:
@@ -18,22 +17,14 @@ Reglas:
 
 /**
  * Genera el informe de noticias a partir de un array de emails.
- * Hace UNA sola llamada a la API de Gemini con todos los emails concatenados.
+ * Hace UNA sola llamada a la API de Groq con todos los emails concatenados.
  *
  * @param {Array<{subject: string, from: string, date: string, body: string}>} emails
- * @returns {Promise<string>} Texto del informe generado por Gemini
+ * @returns {Promise<string>} Texto del informe generado por Groq
  */
 async function summarize(emails) {
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash',
-    systemInstruction: SYSTEM_PROMPT,
-    generationConfig: {
-      maxOutputTokens: 65536,
-    },
-  });
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-  // Fecha de análisis en formato legible en español
   const today = new Date().toLocaleDateString('es-AR', {
     weekday: 'long',
     year:    'numeric',
@@ -41,7 +32,6 @@ async function summarize(emails) {
     day:     'numeric',
   });
 
-  // Construir el prompt de usuario con todos los emails
   let userPrompt = `Fecha de análisis: ${today}\n\n`;
   userPrompt += `A continuación se presentan ${emails.length} correo(s) del label "noticias":\n\n`;
 
@@ -54,8 +44,6 @@ async function summarize(emails) {
   });
 
   userPrompt += `--- FIN DE CORREOS ---\n\n`;
-
-  // Instrucciones de formato del informe
   userPrompt += `Genera un informe con este formato exacto:\n\n`;
 
   userPrompt += `ÍNDICE\n`;
@@ -73,20 +61,27 @@ async function summarize(emails) {
   userPrompt += `Al final, incluir una sección "ALERTAS DEL DÍA" con máximo 3 puntos `;
   userPrompt += `sobre los riesgos o movimientos más relevantes del informe.`;
 
-  log('INFO', `Enviando ${emails.length} email(s) a Gemini Flash para generar el resumen...`);
+  log('INFO', `Enviando ${emails.length} email(s) a Groq para generar el resumen...`);
 
   const MAX_RETRIES = 3;
-  const RETRY_DELAY_MS = 2 * 60 * 1000; // 2 minutos entre intentos
+  const RETRY_DELAY_MS = 2 * 60 * 1000;
 
   let lastError;
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const result = await model.generateContent(userPrompt);
-      const text = result.response.text();
+      const completion = await groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user',   content: userPrompt },
+        ],
+        max_tokens: 32768,
+      });
 
-      if (!text) throw new Error('Gemini devolvió una respuesta vacía.');
+      const text = completion.choices[0]?.message?.content;
+      if (!text) throw new Error('Groq devolvió una respuesta vacía.');
 
-      log('INFO', 'Resumen generado por Gemini Flash.');
+      log('INFO', 'Resumen generado por Groq.');
       return text;
     } catch (err) {
       lastError = err;
