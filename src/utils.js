@@ -95,15 +95,19 @@ const LAST_RUN_PATH = path.join(__dirname, '..', 'last_run.json');
  * @returns {number} Timestamp en segundos
  */
 function getLastRunEpoch(fallbackHours) {
+  const maxEpoch = buildAfterEpoch(fallbackHours);
   try {
     const data = JSON.parse(fs.readFileSync(LAST_RUN_PATH, 'utf-8'));
     if (data.lastRunAt) {
-      log('INFO', `Usando última ejecución exitosa: ${new Date(data.lastRunAt).toISOString()}`);
-      return Math.floor(data.lastRunAt / 1000);
+      const lastRunEpoch = Math.floor(data.lastRunAt / 1000);
+      // Nunca retroceder más allá del límite de horas configurado
+      const result = Math.max(lastRunEpoch, maxEpoch);
+      log('INFO', `Usando última ejecución exitosa: ${new Date(result * 1000).toISOString()}`);
+      return result;
     }
   } catch (_) { /* no existe, usar fallback */ }
   log('INFO', `Sin registro previo. Usando ventana de ${fallbackHours} horas.`);
-  return buildAfterEpoch(fallbackHours);
+  return maxEpoch;
 }
 
 /**
