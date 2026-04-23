@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * summarizer.js — Genera el resumen de noticias usando Gemini 2.0 Flash (Google)
+ * summarizer.js — Genera el resumen de noticias usando Gemini 1.5 Flash (Google)
  */
 
 const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -25,7 +25,7 @@ Reglas:
 async function summarize(emails) {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-1.5-flash',
     systemInstruction: SYSTEM_PROMPT,
     generationConfig: {
       maxOutputTokens: 65536,
@@ -68,7 +68,7 @@ async function summarize(emails) {
   userPrompt += `Al final, incluir una sección "ALERTAS DEL DÍA" con máximo 3 puntos `;
   userPrompt += `sobre los riesgos o movimientos más relevantes del informe.`;
 
-  log('INFO', `Enviando ${emails.length} email(s) a Gemini 2.0 Flash para generar el resumen...`);
+  log('INFO', `Enviando ${emails.length} email(s) a Gemini 1.5 Flash para generar el resumen...`);
 
   const MAX_RETRIES = 3;
   const RETRY_DELAY_MS = 2 * 60 * 1000;
@@ -81,7 +81,7 @@ async function summarize(emails) {
 
       if (!text) throw new Error('Gemini devolvió una respuesta vacía.');
 
-      log('INFO', 'Resumen generado por Gemini 2.0 Flash.');
+      log('INFO', 'Resumen generado por Gemini 1.5 Flash.');
       return text;
     } catch (err) {
       lastError = err;
