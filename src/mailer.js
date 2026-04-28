@@ -5,6 +5,9 @@
  */
 
 const nodemailer = require('nodemailer');
+const dns        = require('dns');
+const { promisify } = require('util');
+const dnsLookup  = promisify(dns.lookup);
 const { log, formatDate } = require('./utils');
 
 /**
@@ -186,14 +189,31 @@ async function sendDigest(summaryText) {
   // Configurar transporte SMTP
   // IMPORTANTE: secure: false + port 587 = STARTTLS (correcto para Gmail)
   //             secure: true  + port 465 = SSL implícito (alternativa)
+  const smtpHostname = process.env.SMTP_HOST || 'smtp.gmail.com';
+  const smtpPort     = parseInt(process.env.SMTP_PORT, 10) || 587;
+
+  // Pre-resolver hostname a IP usando el resolver del OS (mismo que usa nslookup)
+  let smtpHost = smtpHostname;
+  try {
+    const result = await dnsLookup(smtpHostname, { family: 4 });
+    smtpHost = result.address;
+    log('INFO', `SMTP resuelto: ${smtpHostname} → ${smtpHost}`);
+  } catch (dnsErr) {
+    log('WARN', `DNS pre-resolve falló, usando hostname directo: ${dnsErr.message}`);
+  }
+
   const transporter = nodemailer.createTransport({
-    host:   process.env.SMTP_HOST || 'smtp.gmail.com',
-    port:   parseInt(process.env.SMTP_PORT, 10) || 587,
-    secure: false, // false para STARTTLS en puerto 587
+    host:   smtpHost,
+    port:   smtpPort,
+    secure: false,
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
+    tls: { servername: smtpHostname }, // necesario para TLS cuando se usa IP
+    connectionTimeout: 30000,
+    greetingTimeout:   15000,
+    socketTimeout:     30000,
   });
 
   const mailOptions = {
@@ -201,12 +221,26 @@ async function sendDigest(summaryText) {
     to:      process.env.DIGEST_RECIPIENT,
     subject: `📰 Resumen Noticias — ${today}`,
     html:    htmlEmail,
-    // Versión texto plano como fallback para clientes que no soportan HTML
     text:    summaryText,
   };
 
-  await transporter.sendMail(mailOptions);
-  log('INFO', `Email enviado a ${process.env.DIGEST_RECIPIENT} con asunto: "${mailOptions.subject}"`);
+  // 3 intentos con 10s de espera entre ellos
+  const MAX_MAIL_RETRIES = 3;
+  let lastMailError;
+  for (let attempt = 1; attempt <= MAX_MAIL_RETRIES; attempt++) {
+    try {
+      await transporter.sendMail(mailOptions);
+      log('INFO', `Email enviado a ${process.env.DIGEST_RECIPIENT} con asunto: "${mailOptions.subject}"`);
+      return;
+    } catch (err) {
+      lastMailError = err;
+      if (attempt < MAX_MAIL_RETRIES) {
+        log('WARN', `Intento SMTP ${attempt}/${MAX_MAIL_RETRIES} fallido: ${err.message}. Reintentando en 10s...`);
+        await new Promise((resolve) => setTimeout(resolve, 10000));
+      }
+    }
+  }
+  throw lastMailError;
 }
 
 module.exports = { sendDigest };

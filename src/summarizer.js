@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * summarizer.js — Genera el resumen de noticias usando Gemini 1.5 Flash (Google)
+ * summarizer.js — Genera el resumen de noticias usando Gemini (con fallback automático de modelos)
  */
 
 const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -15,22 +15,24 @@ Reglas:
 - Tono institucional, profesional y objetivo.
 - No omitas ninguna noticia aunque sea breve.`;
 
+// Modelos en orden de preferencia. Si el primero falla, se intenta el siguiente.
+const MODEL_FALLBACKS = [
+  'gemini-2.5-flash',
+  'gemini-2.5-flash-lite',
+  'gemini-2.5-pro',
+];
+
+const RETRY_DELAY_MS = 30 * 1000; // 30 segundos entre reintentos del mismo modelo
+
 /**
  * Genera el informe de noticias a partir de un array de emails.
- * Hace UNA sola llamada a la API de Gemini con todos los emails concatenados.
+ * Intenta cada modelo de MODEL_FALLBACKS en orden hasta que uno funcione.
  *
  * @param {Array<{subject: string, from: string, date: string, body: string}>} emails
  * @returns {Promise<string>} Texto del informe generado por Gemini
  */
 async function summarize(emails) {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-2.5-flash',
-    systemInstruction: SYSTEM_PROMPT,
-    generationConfig: {
-      maxOutputTokens: 65536,
-    },
-  });
 
   const today = new Date().toLocaleDateString('es-AR', {
     weekday: 'long',
@@ -68,26 +70,42 @@ async function summarize(emails) {
   userPrompt += `Al final, incluir una sección "ALERTAS DEL DÍA" con máximo 3 puntos `;
   userPrompt += `sobre los riesgos o movimientos más relevantes del informe.`;
 
-  log('INFO', `Enviando ${emails.length} email(s) a Gemini 1.5 Flash para generar el resumen...`);
-
-  const MAX_RETRIES = 3;
-  const RETRY_DELAY_MS = 2 * 60 * 1000;
+  log('INFO', `Enviando ${emails.length} email(s) a Gemini para generar el resumen...`);
 
   let lastError;
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      const result = await model.generateContent(userPrompt);
-      const text = result.response.text();
 
-      if (!text) throw new Error('Gemini devolvió una respuesta vacía.');
+  for (const modelName of MODEL_FALLBACKS) {
+    log('INFO', `Intentando con modelo: ${modelName}`);
 
-      log('INFO', 'Resumen generado por Gemini 1.5 Flash.');
-      return text;
-    } catch (err) {
-      lastError = err;
-      if (attempt < MAX_RETRIES) {
-        log('WARN', `Intento ${attempt}/${MAX_RETRIES} fallido: ${err.message}. Reintentando en ${RETRY_DELAY_MS / 1000}s...`);
-        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+    const model = genAI.getGenerativeModel({
+      model: modelName,
+      systemInstruction: SYSTEM_PROMPT,
+      generationConfig: { maxOutputTokens: 65536 },
+    });
+
+    // 2 intentos por modelo con 30s de espera entre ellos
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const result = await model.generateContent(userPrompt);
+        const text = result.response.text();
+
+        if (!text) throw new Error('Gemini devolvió una respuesta vacía.');
+
+        log('INFO', `Resumen generado con ${modelName}.`);
+        return text;
+      } catch (err) {
+        lastError = err;
+        const isQuotaError = err.message.includes('limit: 0');
+        if (isQuotaError) {
+          log('WARN', `${modelName} sin cuota disponible. Saltando al siguiente modelo...`);
+          break; // no reintentar si no hay cuota, pasar al siguiente modelo
+        }
+        if (attempt < 2) {
+          log('WARN', `${modelName} intento ${attempt}/2 fallido: ${err.message}. Reintentando en ${RETRY_DELAY_MS / 1000}s...`);
+          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+        } else {
+          log('WARN', `${modelName} agotó sus intentos. Saltando al siguiente modelo...`);
+        }
       }
     }
   }
