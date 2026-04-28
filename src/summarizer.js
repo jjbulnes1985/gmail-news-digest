@@ -58,10 +58,13 @@ async function summarize(emails) {
   userPrompt += `ÍNDICE\n`;
   userPrompt += `Agrupa las noticias por temática (Política / Economía & Finanzas / Internacional / `;
   userPrompt += `Empresas & Negocios / Tecnología / Energía & Minería / Sociedad / Deportes).\n`;
+  userPrompt += `IMPORTANTE: usa numeración CONTINUA para todas las noticias de todas las secciones. `;
+  userPrompt += `NO reinicies el número al cambiar de sección. Ejemplo: si Política termina en 11, `;
+  userPrompt += `Economía & Finanzas empieza en 12.\n`;
   userPrompt += `Para cada noticia: número, título, temática, semáforo (Alto/Medio/Bajo).\n\n`;
 
   userPrompt += `CUERPO\n`;
-  userPrompt += `Para cada noticia:\n`;
+  userPrompt += `Para cada noticia, usando el MISMO número continuo del ÍNDICE:\n`;
   userPrompt += `N°. [Título] — Semáforo: [Alto/Medio/Bajo]\n`;
   userPrompt += `Resumen de 4-5 líneas continuas que incluya: actores clave, hecho principal, `;
   userPrompt += `contexto y consecuencias para mercados o inversiones en LatAm.\n`;
