@@ -1,9 +1,7 @@
 name: Gmail News Digest
 
 on:
-  schedule:
-    - cron: '30 11 * * *'   # 8:30 AM Chile verano (UTC-3) / 7:30 AM Chile invierno (UTC-4)
-  workflow_dispatch:         # permite ejecutar manualmente desde GitHub
+  workflow_dispatch:         # disparado por cron-job.org a las 8:30 AM Chile (o manualmente)
 
 jobs:
   digest:

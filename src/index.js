@@ -10,11 +10,17 @@
 
 require('dotenv').config();
 
+const fs   = require('fs');
+const path = require('path');
 const cron = require('node-cron');
 const { authorize, getEmails } = require('./gmail');
 const { summarize }            = require('./summarizer');
 const { sendDigest }           = require('./mailer');
 const { log, saveLastRun }     = require('./utils');
+
+// Ventana de idempotencia: si ya hubo un envío exitoso en las últimas 12 horas, omitir
+const DEDUP_HOURS = 12;
+const LAST_RUN_PATH = path.join(__dirname, '..', 'last_run.json');
 
 // Leer flags de línea de comandos
 const args      = process.argv.slice(2);
@@ -34,6 +40,18 @@ async function runDigest() {
   log('INFO', '═══════════════════════════════════════════════');
   log('INFO', 'Iniciando ciclo de resumen de noticias...');
   log('INFO', '═══════════════════════════════════════════════');
+
+  // ─── Check de idempotencia: evitar envío duplicado ────────────────────────
+  try {
+    const data = JSON.parse(fs.readFileSync(LAST_RUN_PATH, 'utf-8'));
+    if (data.lastRunAt) {
+      const hoursAgo = (Date.now() - data.lastRunAt) / (1000 * 60 * 60);
+      if (hoursAgo < DEDUP_HOURS) {
+        log('INFO', `Última ejecución exitosa hace ${hoursAgo.toFixed(1)}h (< ${DEDUP_HOURS}h). Omitiendo para evitar duplicado.`);
+        return;
+      }
+    }
+  } catch (_) { /* no existe last_run.json, continuar normal */ }
 
   // ─── Etapa 1: Autenticación y lectura de Gmail ───────────────────────────
   let emails;
