@@ -7,105 +7,107 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { log } = require('./utils');
 
-const SYSTEM_PROMPT = `Eres un analista de noticias y mercados especializado en inversionistas de Latinoamérica.
-Tu tarea es procesar una lista de correos del label "noticias" y generar un informe diario.
+const SYSTEM_PROMPT = `Eres un analista de noticias y mercados para inversionistas de Latinoamérica.
 Reglas:
-- No inventes información. Si algo no está claro, márcalo explícitamente con [DATO NO CONFIRMADO].
-- Detecta riesgos antes de mencionar fortalezas.
-- Tono institucional, profesional y objetivo.
-- No omitas ninguna noticia aunque sea breve.`;
+- No inventes información. Si algo no está claro, márcalo con [DATO NO CONFIRMADO].
+- Detecta riesgos antes de fortalezas.
+- Tono institucional, profesional, objetivo.
+- No omitas ninguna noticia, aunque sea breve.`;
 
-// Modelos en orden de preferencia. Si el primero falla, se intenta el siguiente.
 const MODEL_FALLBACKS = [
   'gemini-2.5-flash',
   'gemini-2.5-flash-lite',
   'gemini-2.5-pro',
 ];
 
-const RETRY_DELAY_MS = 30 * 1000; // 30 segundos entre reintentos del mismo modelo
+const RETRY_DELAY_MS = 30 * 1000;
+const MAX_BODY_CHARS = 6000; // cap por email para evitar tokens excesivos en PDFs largos
+const MAX_OUTPUT_TOKENS = 16384;
 
 /**
- * Genera el informe de noticias a partir de un array de emails.
- * Intenta cada modelo de MODEL_FALLBACKS en orden hasta que uno funcione.
+ * Trunca el cuerpo si excede MAX_BODY_CHARS, dejando marca visible.
+ */
+function truncateBody(body) {
+  if (!body || body.length <= MAX_BODY_CHARS) return body || '';
+  return body.slice(0, MAX_BODY_CHARS) + `\n[...truncado ${body.length - MAX_BODY_CHARS} caracteres]`;
+}
+
+/**
+ * Construye el prompt del usuario a partir de los emails.
+ */
+function buildUserPrompt(emails) {
+  const today = new Date().toLocaleDateString('es-AR', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+  });
+
+  const emailsBlock = emails.map((e, i) => (
+    `--- EMAIL ${i + 1} ---\n` +
+    `Asunto: ${e.subject}\n` +
+    `De: ${e.from}\n` +
+    `Fecha: ${e.date}\n` +
+    `Contenido:\n${truncateBody(e.body)}\n`
+  )).join('\n');
+
+  return `Fecha: ${today}
+Procesa los siguientes ${emails.length} correos y genera un informe con el formato exacto indicado abajo.
+
+${emailsBlock}
+--- FIN DE CORREOS ---
+
+FORMATO DE SALIDA:
+
+ÍNDICE
+Agrupa las noticias por temática en este orden: Política / Economía & Finanzas / Internacional / Empresas & Negocios / Tecnología / Energía & Minería / Sociedad / Deportes.
+IMPORTANTE: numeración CONTINUA a lo largo de todo el índice (no reiniciar por sección). Ej: si Política termina en 11, Economía empieza en 12.
+Formato por noticia: "N. [Título] — [Temática] — Semáforo: [Alto/Medio/Bajo]"
+
+CUERPO
+Para cada noticia, usando el MISMO número del ÍNDICE:
+N. [Título] — Semáforo: [Alto/Medio/Bajo]
+Resumen de 4-5 líneas: actores clave, hecho principal, contexto y consecuencias para mercados/inversiones en LatAm.
+(Fuente: {subject} — {from} — {date})
+
+ALERTAS DEL DÍA
+Máximo 3 puntos con los riesgos o movimientos más relevantes.`;
+}
+
+/**
+ * Genera el informe de noticias. Intenta cada modelo de MODEL_FALLBACKS en orden.
  *
  * @param {Array<{subject: string, from: string, date: string, body: string}>} emails
  * @returns {Promise<string>} Texto del informe generado por Gemini
  */
 async function summarize(emails) {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-  const today = new Date().toLocaleDateString('es-AR', {
-    weekday: 'long',
-    year:    'numeric',
-    month:   'long',
-    day:     'numeric',
-  });
-
-  let userPrompt = `Fecha de análisis: ${today}\n\n`;
-  userPrompt += `A continuación se presentan ${emails.length} correo(s) del label "noticias":\n\n`;
-
-  emails.forEach((email, i) => {
-    userPrompt += `--- EMAIL ${i + 1} ---\n`;
-    userPrompt += `Asunto: ${email.subject}\n`;
-    userPrompt += `De: ${email.from}\n`;
-    userPrompt += `Fecha: ${email.date}\n`;
-    userPrompt += `Contenido:\n${email.body}\n\n`;
-  });
-
-  userPrompt += `--- FIN DE CORREOS ---\n\n`;
-  userPrompt += `Genera un informe con este formato exacto:\n\n`;
-
-  userPrompt += `ÍNDICE\n`;
-  userPrompt += `Agrupa las noticias por temática (Política / Economía & Finanzas / Internacional / `;
-  userPrompt += `Empresas & Negocios / Tecnología / Energía & Minería / Sociedad / Deportes).\n`;
-  userPrompt += `IMPORTANTE: usa numeración CONTINUA para todas las noticias de todas las secciones. `;
-  userPrompt += `NO reinicies el número al cambiar de sección. Ejemplo: si Política termina en 11, `;
-  userPrompt += `Economía & Finanzas empieza en 12.\n`;
-  userPrompt += `Para cada noticia: número, título, temática, semáforo (Alto/Medio/Bajo).\n\n`;
-
-  userPrompt += `CUERPO\n`;
-  userPrompt += `Para cada noticia, usando el MISMO número continuo del ÍNDICE:\n`;
-  userPrompt += `N°. [Título] — Semáforo: [Alto/Medio/Bajo]\n`;
-  userPrompt += `Resumen de 4-5 líneas continuas que incluya: actores clave, hecho principal, `;
-  userPrompt += `contexto y consecuencias para mercados o inversiones en LatAm.\n`;
-  userPrompt += `(Fuente: {subject} — {from} — {date})\n\n`;
-
-  userPrompt += `Al final, incluir una sección "ALERTAS DEL DÍA" con máximo 3 puntos `;
-  userPrompt += `sobre los riesgos o movimientos más relevantes del informe.`;
+  const userPrompt = buildUserPrompt(emails);
 
   log('INFO', `Enviando ${emails.length} email(s) a Gemini para generar el resumen...`);
 
   let lastError;
-
   for (const modelName of MODEL_FALLBACKS) {
     log('INFO', `Intentando con modelo: ${modelName}`);
-
     const model = genAI.getGenerativeModel({
       model: modelName,
       systemInstruction: SYSTEM_PROMPT,
-      generationConfig: { maxOutputTokens: 65536 },
+      generationConfig: { maxOutputTokens: MAX_OUTPUT_TOKENS },
     });
 
-    // 2 intentos por modelo con 30s de espera entre ellos
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
         const result = await model.generateContent(userPrompt);
         const text = result.response.text();
-
         if (!text) throw new Error('Gemini devolvió una respuesta vacía.');
-
         log('INFO', `Resumen generado con ${modelName}.`);
         return text;
       } catch (err) {
         lastError = err;
-        const isQuotaError = err.message.includes('limit: 0');
-        if (isQuotaError) {
+        if (err.message.includes('limit: 0')) {
           log('WARN', `${modelName} sin cuota disponible. Saltando al siguiente modelo...`);
-          break; // no reintentar si no hay cuota, pasar al siguiente modelo
+          break;
         }
         if (attempt < 2) {
           log('WARN', `${modelName} intento ${attempt}/2 fallido: ${err.message}. Reintentando en ${RETRY_DELAY_MS / 1000}s...`);
-          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+          await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
         } else {
           log('WARN', `${modelName} agotó sus intentos. Saltando al siguiente modelo...`);
         }

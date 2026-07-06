@@ -1,6 +1,8 @@
 name: Gmail News Digest
 
 on:
+  schedule:
+    - cron: '35 11 * * *'   # 8:35 AM Chile (UTC-3) — respaldo interno; cron-job.org dispara a las 8:30
   workflow_dispatch:         # disparado por cron-job.org a las 8:30 AM Chile (o manualmente)
 
 jobs:
