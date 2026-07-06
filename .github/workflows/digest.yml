@@ -5,6 +5,13 @@ on:
     - cron: '35 11 * * *'   # 8:35 AM Chile (UTC-3) — respaldo interno; cron-job.org dispara a las 8:30
   workflow_dispatch:         # disparado por cron-job.org a las 8:30 AM Chile (o manualmente)
 
+# Evita que dos disparos cercanos (cron-job.org + respaldo interno) corran en paralelo.
+# El segundo espera en cola en vez de correr simultáneo, así el check de idempotencia
+# en código (12h) siempre ve el last_run.json ya actualizado por el primero.
+concurrency:
+  group: gmail-news-digest
+  cancel-in-progress: false
+
 jobs:
   digest:
     runs-on: ubuntu-latest

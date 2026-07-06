@@ -22,7 +22,7 @@ const MODEL_FALLBACKS = [
 
 const RETRY_DELAY_MS = 30 * 1000;
 const MAX_BODY_CHARS = 6000; // cap por email para evitar tokens excesivos en PDFs largos
-const MAX_OUTPUT_TOKENS = 16384;
+const MAX_OUTPUT_TOKENS = 24576; // margen extra por el mayor detalle en noticias Alto/Medio
 
 /**
  * Trunca el cuerpo si excede MAX_BODY_CHARS, dejando marca visible.
@@ -64,7 +64,8 @@ Formato por noticia: "N. [Título] — [Temática] — Semáforo: [Alto/Medio/Ba
 CUERPO
 Para cada noticia, usando el MISMO número del ÍNDICE:
 N. [Título] — Semáforo: [Alto/Medio/Bajo]
-Resumen de 4-5 líneas: actores clave, hecho principal, contexto y consecuencias para mercados/inversiones en LatAm.
+- Si Semáforo es Alto o Medio: desarrolla 7-9 líneas continuas, profundizando en actores clave, hecho principal, contexto (antecedentes relevantes), cifras o datos concretos si están disponibles, y un análisis más detallado de las consecuencias para mercados o inversiones en LatAm (impacto sectorial, riesgo/oportunidad, plazo esperado).
+- Si Semáforo es Bajo: resumen breve de 3-4 líneas con lo esencial (actores, hecho, contexto mínimo).
 (Fuente: {subject} — {from} — {date})
 
 ALERTAS DEL DÍA
