@@ -33,10 +33,12 @@ const AUTH_ONLY = args.includes('--auth-only');
  * 2. Genera resumen con Claude
  * 3. Envía el resumen por email
  *
- * Cada etapa tiene su propio try/catch para que un fallo no interrumpa el log
- * de las demás y el proceso no crashee.
+ * Cada etapa registra su error y lo relanza: el proceso termina con código 1,
+ * GitHub marca la corrida como fallida (y avisa por email) y el siguiente
+ * disparo de respaldo vuelve a intentar.
  */
 async function runDigest() {
+  const startedAt = Date.now();
   log('INFO', '═══════════════════════════════════════════════');
   log('INFO', 'Iniciando ciclo de resumen de noticias...');
   log('INFO', '═══════════════════════════════════════════════');
@@ -60,7 +62,7 @@ async function runDigest() {
     emails = await getEmails(auth);
   } catch (err) {
     log('ERROR', `Fallo en lectura de Gmail: ${err.message}`);
-    return;
+    throw err;
   }
 
   if (emails.length === 0) {
@@ -75,8 +77,8 @@ async function runDigest() {
   try {
     summary = await summarize(emails);
   } catch (err) {
-    log('ERROR', `Fallo en generación del resumen con Claude: ${err.message}`);
-    return;
+    log('ERROR', `Fallo en generación del resumen con Gemini: ${err.message}`);
+    throw err;
   }
 
   // ─── Etapa 3: Envío del resumen por email ────────────────────────────────
@@ -84,10 +86,10 @@ async function runDigest() {
     await sendDigest(summary);
   } catch (err) {
     log('ERROR', `Fallo en envío del email: ${err.message}`);
-    return;
+    throw err;
   }
 
-  saveLastRun();
+  saveLastRun(startedAt);
   log('INFO', 'Ciclo completado exitosamente.');
 }
 

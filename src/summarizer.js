@@ -22,7 +22,8 @@ const MODEL_FALLBACKS = [
 
 const RETRY_DELAY_MS = 30 * 1000;
 const MAX_BODY_CHARS = 6000; // cap por email para evitar tokens excesivos en PDFs largos
-const MAX_OUTPUT_TOKENS = 24576; // margen extra por el mayor detalle en noticias Alto/Medio
+const MAX_OUTPUT_TOKENS = 65536; // máximo de Gemini 2.5; el "thinking" también consume de este total
+const THINKING_BUDGET = 2048;    // acota el razonamiento interno para que no se coma la salida
 
 /**
  * Trunca el cuerpo si excede MAX_BODY_CHARS, dejando marca visible.
@@ -90,7 +91,10 @@ async function summarize(emails) {
     const model = genAI.getGenerativeModel({
       model: modelName,
       systemInstruction: SYSTEM_PROMPT,
-      generationConfig: { maxOutputTokens: MAX_OUTPUT_TOKENS },
+      generationConfig: {
+        maxOutputTokens: MAX_OUTPUT_TOKENS,
+        thinkingConfig: { thinkingBudget: THINKING_BUDGET },
+      },
     });
 
     for (let attempt = 1; attempt <= 2; attempt++) {
@@ -98,7 +102,18 @@ async function summarize(emails) {
         const result = await model.generateContent(userPrompt);
         const text = result.response.text();
         if (!text) throw new Error('Gemini devolvió una respuesta vacía.');
-        log('INFO', `Resumen generado con ${modelName}.`);
+
+        // Gemini corta en silencio al llegar al límite de tokens: text() devuelve el
+        // fragmento sin error. Un informe cortado no se envía; se prueba otro modelo.
+        const finishReason = result.response.candidates?.[0]?.finishReason;
+        if (finishReason && finishReason !== 'STOP') {
+          throw new Error(`respuesta incompleta (finishReason=${finishReason}, ${text.length} caracteres)`);
+        }
+        if (!/ALERTAS DEL D[IÍ]A/i.test(text)) {
+          throw new Error('respuesta incompleta (falta la sección ALERTAS DEL DÍA)');
+        }
+
+        log('INFO', `Resumen generado con ${modelName} (${text.length} caracteres).`);
         return text;
       } catch (err) {
         lastError = err;

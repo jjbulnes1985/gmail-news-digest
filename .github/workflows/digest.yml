@@ -2,7 +2,13 @@ name: Gmail News Digest
 
 on:
   schedule:
-    - cron: '35 11 * * *'   # 8:35 AM Chile (UTC-3) — respaldo interno; cron-job.org dispara a las 8:30
+    # Respaldos internos (hora Chile verano, UTC-3). GitHub suele atrasar estos
+    # disparos varias horas, por eso hay varios: el primero que corre envía el
+    # informe y los demás se omiten solos (check de 12h en el código). Si una
+    # corrida falla, el siguiente respaldo reintenta.
+    - cron: '35 11 * * *'   # 8:35
+    - cron: '5 12 * * *'    # 9:05
+    - cron: '45 12 * * *'   # 9:45
   workflow_dispatch:         # disparado por cron-job.org a las 8:30 AM Chile (o manualmente)
 
 # Evita que dos disparos cercanos (cron-job.org + respaldo interno) corran en paralelo.
@@ -15,7 +21,7 @@ concurrency:
 jobs:
   digest:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     permissions:
       contents: write
 

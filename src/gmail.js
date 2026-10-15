@@ -248,28 +248,40 @@ async function getEmails(auth) {
 
   const gmailLabel   = process.env.GMAIL_LABEL    || 'noticias';
   const hoursBack    = parseInt(process.env.HOURS_LOOKBACK, 10) || 24;
-  const maxResults   = parseInt(process.env.MAX_EMAILS_PER_RUN, 10) || 30;
-  const afterEpoch   = getLastRunEpoch(hoursBack);
+  const maxResults   = parseInt(process.env.MAX_EMAILS_PER_RUN, 10) || 100;
+  // Si un día falla, el siguiente recupera lo pendiente (hasta 72h atrás)
+  const afterEpoch   = getLastRunEpoch(Math.max(hoursBack, 72));
 
   const query = `label:${gmailLabel} after:${afterEpoch}`;
   log('INFO', `Buscando emails con query: "${query}" (máx. ${maxResults})`);
 
-  // Listar IDs de mensajes que coinciden con la búsqueda
-  const listResponse = await gmail.users.messages.list({
-    userId: 'me',
-    q: query,
-    maxResults,
-  });
+  // Listar IDs de mensajes que coinciden con la búsqueda (paginando: la API
+  // puede devolver menos de lo pedido por página aunque haya más resultados)
+  const messages = [];
+  let pageToken;
+  do {
+    const listResponse = await gmail.users.messages.list({
+      userId: 'me',
+      q: query,
+      maxResults: Math.min(maxResults - messages.length, 500),
+      pageToken,
+    });
+    messages.push(...(listResponse.data.messages || []));
+    pageToken = listResponse.data.nextPageToken;
+  } while (pageToken && messages.length < maxResults);
 
-  const messages = listResponse.data.messages;
-  if (!messages || messages.length === 0) {
+  if (messages.length === 0) {
     return [];
+  }
+  if (pageToken) {
+    log('WARN', `Hay más de ${maxResults} correos en la ventana; subí MAX_EMAILS_PER_RUN para no perder noticias.`);
   }
 
   log('INFO', `${messages.length} mensaje(s) encontrado(s). Descargando contenido...`);
 
   // Descargar el contenido completo de cada mensaje
   const emails = [];
+  let failed = 0;
   for (const msg of messages) {
     try {
       const msgResponse = await gmail.users.messages.get({
@@ -305,7 +317,13 @@ async function getEmails(auth) {
       emails.push({ subject, from, date, body });
     } catch (err) {
       log('WARN', `No se pudo leer el mensaje ${msg.id}: ${err.message}`);
+      failed++;
     }
+  }
+
+  // Si se pierde más de la mitad, mejor fallar y reintentar que mandar un informe a medias
+  if (failed > 0 && failed * 2 > messages.length) {
+    throw new Error(`No se pudieron leer ${failed} de ${messages.length} correos.`);
   }
 
   return emails;

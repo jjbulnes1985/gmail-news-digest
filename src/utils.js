@@ -112,9 +112,12 @@ function getLastRunEpoch(fallbackHours) {
 
 /**
  * Guarda el timestamp de la ejecución exitosa actual en last_run.json.
+ * Se usa la hora de INICIO de la corrida: los correos que llegan mientras
+ * corre el pipeline quedan para el informe siguiente en vez de perderse.
+ * @param {number} startedAt - Epoch en ms en que empezó la corrida
  */
-function saveLastRun() {
-  fs.writeFileSync(LAST_RUN_PATH, JSON.stringify({ lastRunAt: Date.now() }, null, 2));
+function saveLastRun(startedAt) {
+  fs.writeFileSync(LAST_RUN_PATH, JSON.stringify({ lastRunAt: startedAt }, null, 2));
   log('INFO', 'Timestamp de última ejecución guardado en last_run.json');
 }
 
