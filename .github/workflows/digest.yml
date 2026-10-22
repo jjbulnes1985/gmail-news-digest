@@ -36,6 +36,9 @@ jobs:
       - name: Instalar dependencias
         run: npm install
 
+      - name: Asegurar ffmpeg (audio MP3)
+        run: command -v ffmpeg || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
+
       - name: Escribir archivo .env
         run: echo "$ENV_FILE" > .env
         env:

@@ -16,6 +16,7 @@ const cron = require('node-cron');
 const { authorize, getEmails } = require('./gmail');
 const { summarize }            = require('./summarizer');
 const { sendDigest }           = require('./mailer');
+const { generateAudio }        = require('./audio');
 const { log, saveLastRun, santiagoDate, getLastRunDate } = require('./utils');
 
 // Idempotencia: un solo informe por día calendario de Santiago. Los disparos
@@ -78,7 +79,12 @@ async function runDigest() {
 
   // ─── Etapa 3: Envío del resumen por email ────────────────────────────────
   try {
-    await sendDigest(summary);
+    // Audio opcional: nunca bloquea el envío; si falla, el correo sale sin adjunto
+    const dateLabel = new Date(startedAt).toLocaleDateString('es-CL', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Santiago',
+    });
+    const audio = await generateAudio(summary, dateLabel);
+    await sendDigest(summary, audio);
   } catch (err) {
     log('ERROR', `Fallo en envío del email: ${err.message}`);
     throw err;
