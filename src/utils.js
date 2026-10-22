@@ -117,8 +117,39 @@ function getLastRunEpoch(fallbackHours) {
  * @param {number} startedAt - Epoch en ms en que empezó la corrida
  */
 function saveLastRun(startedAt) {
-  fs.writeFileSync(LAST_RUN_PATH, JSON.stringify({ lastRunAt: startedAt }, null, 2));
+  const payload = { lastRunAt: startedAt, lastRunDate: santiagoDate(startedAt) };
+  fs.writeFileSync(LAST_RUN_PATH, JSON.stringify(payload, null, 2));
   log('INFO', 'Timestamp de última ejecución guardado en last_run.json');
 }
 
-module.exports = { stripHtml, log, formatDate, buildAfterEpoch, getLastRunEpoch, saveLastRun };
+/**
+ * Fecha calendario (AAAA-MM-DD) en America/Santiago para un epoch en ms.
+ * Se usa para el control anti-duplicado: un informe por día calendario de Chile,
+ * sin importar a qué hora corrió el anterior.
+ * @param {number} epochMs
+ * @returns {string}
+ */
+function santiagoDate(epochMs) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Santiago', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date(epochMs));
+}
+
+/**
+ * Devuelve la fecha (AAAA-MM-DD, Santiago) del último envío exitoso, o null.
+ * Compatible con last_run.json antiguos que solo tienen lastRunAt.
+ * @returns {string|null}
+ */
+function getLastRunDate() {
+  try {
+    const data = JSON.parse(fs.readFileSync(LAST_RUN_PATH, 'utf-8'));
+    if (data.lastRunDate) return data.lastRunDate;
+    if (data.lastRunAt) return santiagoDate(data.lastRunAt);
+  } catch (_) { /* no existe o ilegible */ }
+  return null;
+}
+
+module.exports = {
+  stripHtml, log, formatDate, buildAfterEpoch, getLastRunEpoch, saveLastRun,
+  santiagoDate, getLastRunDate,
+};

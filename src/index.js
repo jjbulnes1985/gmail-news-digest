@@ -16,11 +16,10 @@ const cron = require('node-cron');
 const { authorize, getEmails } = require('./gmail');
 const { summarize }            = require('./summarizer');
 const { sendDigest }           = require('./mailer');
-const { log, saveLastRun }     = require('./utils');
+const { log, saveLastRun, santiagoDate, getLastRunDate } = require('./utils');
 
-// Ventana de idempotencia: si ya hubo un envío exitoso en las últimas 12 horas, omitir
-const DEDUP_HOURS = 12;
-const LAST_RUN_PATH = path.join(__dirname, '..', 'last_run.json');
+// Idempotencia: un solo informe por día calendario de Santiago. Los disparos
+// posteriores del mismo día (respaldos de GitHub, reintentos) se omiten solos.
 
 // Leer flags de línea de comandos
 const args      = process.argv.slice(2);
@@ -44,16 +43,12 @@ async function runDigest() {
   log('INFO', '═══════════════════════════════════════════════');
 
   // ─── Check de idempotencia: evitar envío duplicado ────────────────────────
-  try {
-    const data = JSON.parse(fs.readFileSync(LAST_RUN_PATH, 'utf-8'));
-    if (data.lastRunAt) {
-      const hoursAgo = (Date.now() - data.lastRunAt) / (1000 * 60 * 60);
-      if (hoursAgo < DEDUP_HOURS) {
-        log('INFO', `Última ejecución exitosa hace ${hoursAgo.toFixed(1)}h (< ${DEDUP_HOURS}h). Omitiendo para evitar duplicado.`);
-        return;
-      }
-    }
-  } catch (_) { /* no existe last_run.json, continuar normal */ }
+  const today       = santiagoDate(startedAt);
+  const lastRunDate = getLastRunDate();
+  if (lastRunDate === today) {
+    log('INFO', `Ya se envió el informe de hoy (${today}, hora de Santiago). Omitiendo para evitar duplicado.`);
+    return;
+  }
 
   // ─── Etapa 1: Autenticación y lectura de Gmail ───────────────────────────
   let emails;

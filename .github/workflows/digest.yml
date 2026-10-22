@@ -2,18 +2,18 @@ name: Gmail News Digest
 
 on:
   schedule:
-    # Respaldos internos (hora Chile verano, UTC-3). GitHub suele atrasar estos
-    # disparos varias horas, por eso hay varios: el primero que corre envía el
-    # informe y los demás se omiten solos (check de 12h en el código). Si una
-    # corrida falla, el siguiente respaldo reintenta.
-    - cron: '35 11 * * *'   # 8:35
-    - cron: '5 12 * * *'    # 9:05
-    - cron: '45 12 * * *'   # 9:45
-  workflow_dispatch:         # disparado por cron-job.org a las 8:30 AM Chile (o manualmente)
+    # Respaldos TARDÍOS (hora Chile verano, UTC-3). GitHub atrasa estos disparos
+    # entre 3 y 6 horas (medido oct-2026), así que solo sirven como red de
+    # seguridad si falla el disparador principal. Si el informe del día ya salió,
+    # se omiten solos (control por fecha calendario de Santiago en el código).
+    - cron: '35 11 * * *'   # 8:35 nominal
+    - cron: '5 12 * * *'    # 9:05 nominal
+    - cron: '45 12 * * *'   # 9:45 nominal
+  workflow_dispatch:         # DISPARADOR PRINCIPAL: tarea programada de Claude a las 8:20 Chile
+                             # (vía conexión GitHub en Composio); también manual.
 
-# Evita que dos disparos cercanos (cron-job.org + respaldo interno) corran en paralelo.
-# El segundo espera en cola en vez de correr simultáneo, así el check de idempotencia
-# en código (12h) siempre ve el last_run.json ya actualizado por el primero.
+# Evita que dos disparos cercanos corran en paralelo. El segundo espera en cola,
+# así el control de idempotencia siempre ve el last_run.json ya actualizado.
 concurrency:
   group: gmail-news-digest
   cancel-in-progress: false
