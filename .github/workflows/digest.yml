@@ -3,8 +3,9 @@ name: Gmail News Digest
 on:
   schedule:
     # Respaldos TARDÍOS (hora Chile verano, UTC-3). GitHub atrasa estos disparos
-    # entre 3 y 6 horas (medido oct-2026), así que solo sirven como red de
-    # seguridad si falla el disparador principal. Si el informe del día ya salió,
+    # entre 2,8 y 8,8 horas (medido 8 al 22-oct-2026; mediana 4,5 horas), así que
+    # solo sirven como red de seguridad si falla el disparador principal. Si el
+    # informe del día ya salió,
     # se omiten solos (control por fecha calendario de Santiago en el código).
     - cron: '35 11 * * *'   # 8:35 nominal
     - cron: '5 12 * * *'    # 9:05 nominal

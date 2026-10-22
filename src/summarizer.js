@@ -41,8 +41,9 @@ function truncateBody(body) {
  * Construye el prompt del usuario a partir de los emails.
  */
 function buildUserPrompt(emails) {
-  const today = new Date().toLocaleDateString('es-AR', {
+  const today = new Date().toLocaleDateString('es-CL', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    timeZone: 'America/Santiago', // el runner corre en UTC
   });
 
   const emailsBlock = emails.map((e, i) => (

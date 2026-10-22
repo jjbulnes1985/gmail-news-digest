@@ -136,6 +136,18 @@ function santiagoDate(epochMs) {
 }
 
 /**
+ * Fecha calendario de America/Santiago en formato DD/MM/YYYY (asunto y cuerpo del correo).
+ * El runner de GitHub corre en UTC: sin esto, entre las 21:00 y las 24:00 de Chile
+ * la fecha saldría con el día siguiente.
+ * @param {number} epochMs
+ * @returns {string}
+ */
+function santiagoDateDMY(epochMs) {
+  const [y, m, d] = santiagoDate(epochMs).split('-');
+  return `${d}/${m}/${y}`;
+}
+
+/**
  * Devuelve la fecha (AAAA-MM-DD, Santiago) del último envío exitoso, o null.
  * Compatible con last_run.json antiguos que solo tienen lastRunAt.
  * @returns {string|null}
@@ -151,5 +163,5 @@ function getLastRunDate() {
 
 module.exports = {
   stripHtml, log, formatDate, buildAfterEpoch, getLastRunEpoch, saveLastRun,
-  santiagoDate, getLastRunDate,
+  santiagoDate, santiagoDateDMY, getLastRunDate,
 };
