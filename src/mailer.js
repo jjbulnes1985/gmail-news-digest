@@ -9,6 +9,7 @@ const dns        = require('dns');
 const { promisify } = require('util');
 const dnsLookup  = promisify(dns.lookup);
 const { log, santiagoDateDMY } = require('./utils');
+const { getChanges } = require('./models');
 
 /**
  * Convierte el texto plano del resumen (con secciones ÍNDICE / CUERPO / ALERTAS)
@@ -113,6 +114,8 @@ async function sendDigest(summaryText, audio = null) {
 
   // Convertir el texto a HTML con estilos de email
   let bodyHtml = convertToHtml(summaryText);
+  // Si en esta corrida se cambió de modelo automáticamente, se informa al pie
+  const modelChangesHtml = getChanges().map((c) => `<br>${escapeHtml(c)}`).join('');
   if (audio && audio.ok) {
     bodyHtml = `<p class="audio-nota">🎧 Resumen en audio adjunto (alertas, noticias Alto y Medio; ${audio.minutes.toFixed(0)} min aprox.).</p>\n` + bodyHtml;
   } else if (audio && audio.reason) {
@@ -213,7 +216,7 @@ async function sendDigest(summaryText, audio = null) {
   <h1>📰 Resumen de Noticias — ${today}</h1>
   ${bodyHtml}
   <div class="footer">
-    Generado automáticamente por gmail-news-digest · ${today}
+    Generado automáticamente por gmail-news-digest · ${today}${modelChangesHtml}
   </div>
 </body>
 </html>`;

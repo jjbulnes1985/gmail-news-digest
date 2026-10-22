@@ -14,6 +14,14 @@ function stripHtml(html) {
 
   let text = html;
 
+  // Eliminar bloques que no son contenido: CSS, JavaScript y comentarios HTML.
+  // Sin esto, correos solo-HTML (ej. Club de Lectores de El Mercurio) llegaban a
+  // Gemini con CSS como texto, consumiendo tokens sin aportar noticias.
+  text = text.replace(/<style[\s\S]*?<\/style>/gi, ' ');
+  text = text.replace(/<script[\s\S]*?<\/script>/gi, ' ');
+  text = text.replace(/<!--[\s\S]*?-->/g, ' ');
+  text = text.replace(/<head[\s\S]*?<\/head>/gi, ' ');
+
   // Reemplazar etiquetas de bloque por saltos de línea antes de eliminar tags
   text = text.replace(/<br\s*\/?>/gi, '\n');
   text = text.replace(/<\/p>/gi, '\n');

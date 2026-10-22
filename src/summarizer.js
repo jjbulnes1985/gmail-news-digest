@@ -6,6 +6,7 @@
 
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { log } = require('./utils');
+const { isUnavailable, discoverModel, recordChange } = require('./models');
 
 const SYSTEM_PROMPT = `Eres un analista de noticias y mercados para inversionistas de Latinoamérica.
 Reglas:
@@ -14,6 +15,8 @@ Reglas:
 - Tono institucional, profesional, objetivo.
 - No omitas ninguna noticia, aunque sea breve.`;
 
+// Lista preferida. Si un modelo deja de estar disponible (404 o retirado) se descarta;
+// si se descartan todos, se elige un reemplazo vía /v1beta/models (src/models.js).
 const MODEL_FALLBACKS = [
   'gemini-2.5-flash',
   'gemini-2.5-flash-lite',
@@ -22,9 +25,9 @@ const MODEL_FALLBACKS = [
 // disponible para esta cuenta. Ante errores 503 por alta demanda, en vez de un tercer
 // modelo se hace una segunda vuelta completa tras una pausa más larga.
 const ROUNDS = 2;
-const ROUND_PAUSE_MS = 90 * 1000;
+const ROUND_PAUSE_MS = parseInt(process.env.SUMMARY_ROUND_PAUSE_MS, 10) || 90 * 1000;
 
-const RETRY_DELAY_MS = 30 * 1000;
+const RETRY_DELAY_MS = parseInt(process.env.SUMMARY_RETRY_DELAY_MS, 10) || 30 * 1000;
 // Límites de ENTRADA. Antes era 6.000 caracteres por correo: el 22-10-2026, 5 de 12
 // correos (El Mercurio, El Líbero, CoStar, Bloomberg Línea, Criteria) superaban ese
 // tope y cerca del 60% de su texto no llegaba a Gemini, por eso faltaban noticias.
@@ -108,20 +111,26 @@ async function summarize(emails) {
   log('INFO', `Enviando ${emails.length} email(s) a Gemini para generar el resumen...`);
 
   let lastError;
+  const models = [...MODEL_FALLBACKS];
+  const unavailable = new Set();
+  let discovered = false;
   for (let round = 1; round <= ROUNDS; round++) {
     if (round > 1) {
       log('WARN', `Vuelta ${round - 1} sin éxito. Esperando ${ROUND_PAUSE_MS / 1000}s antes de la vuelta ${round}/${ROUNDS}...`);
       await new Promise((r) => setTimeout(r, ROUND_PAUSE_MS));
     }
-    for (const modelName of MODEL_FALLBACKS) {
+    for (let idx = 0; idx < models.length; idx++) {
+      const modelName = models[idx];
+      if (unavailable.has(modelName)) continue;
       log('INFO', `Intentando con modelo: ${modelName} (vuelta ${round}/${ROUNDS})`);
+      const generationConfig = { maxOutputTokens: MAX_OUTPUT_TOKENS };
+      // thinkingBudget es propio de la familia 2.5; un modelo de reemplazo más nuevo
+      // podría rechazarlo, por eso solo se envía a los 2.5.
+      if (/^gemini-2\.5/.test(modelName)) generationConfig.thinkingConfig = { thinkingBudget: THINKING_BUDGET };
       const model = genAI.getGenerativeModel({
         model: modelName,
         systemInstruction: SYSTEM_PROMPT,
-        generationConfig: {
-          maxOutputTokens: MAX_OUTPUT_TOKENS,
-          thinkingConfig: { thinkingBudget: THINKING_BUDGET },
-        },
+        generationConfig,
       });
 
       for (let attempt = 1; attempt <= 2; attempt++) {
@@ -144,6 +153,18 @@ async function summarize(emails) {
           return text;
         } catch (err) {
           lastError = err;
+          // Modelo retirado o inexistente: se descarta sin reintentar. Si ya no queda
+          // ninguno preferido, se descubre un reemplazo (una vez por corrida).
+          if (isUnavailable(err)) {
+            unavailable.add(modelName);
+            log('WARN', `${modelName} no está disponible (${err.message.slice(0, 160)}). Se descarta.`);
+            if (!discovered && models.every((m) => unavailable.has(m))) {
+              discovered = true;
+              const alt = await discoverModel('text', [...unavailable]);
+              if (alt) { models.push(alt); recordChange('texto', alt, MODEL_FALLBACKS); }
+            }
+            break;
+          }
           if (err.message.includes('limit: 0')) {
             log('WARN', `${modelName} sin cuota disponible. Saltando al siguiente modelo...`);
             break;
