@@ -19,50 +19,72 @@ const { log, santiagoDateDMY } = require('./utils');
 function convertToHtml(text) {
   const lines = text.split('\n');
   let html = '';
+  let section = '';          // 'indice' | 'cuerpo' | 'alertas' | ''
+  let hasBodyAnchors = false;
 
-  // Función para colorear el semáforo en el HTML
-  const badgeSemaforo = (linea) => {
-    return linea
-      .replace(/Semáforo:\s*Alto/gi,  'Semáforo: <span class="alto">Alto</span>')
-      .replace(/Semáforo:\s*Medio/gi, 'Semáforo: <span class="medio">Medio</span>')
-      .replace(/Semáforo:\s*Bajo/gi,  'Semáforo: <span class="bajo">Bajo</span>');
-  };
+  // Colorea el semáforo
+  const badgeSemaforo = (linea) => linea
+    .replace(/Semáforo:\s*Alto/gi,  'Semáforo: <span class="alto">Alto</span>')
+    .replace(/Semáforo:\s*Medio/gi, 'Semáforo: <span class="medio">Medio</span>')
+    .replace(/Semáforo:\s*Bajo/gi,  'Semáforo: <span class="bajo">Bajo</span>');
+
+  // Convierte **negrita** (markdown que a veces devuelve Gemini) en <strong>; quita # sueltos
+  const inline = (raw) => badgeSemaforo(
+    escapeHtml(raw.replace(/^#+\s*/, ''))
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*\*/g, '')
+  );
+
+  // Texto del encabezado sin asteriscos ni almohadillas, para reconocer secciones
+  const plain = (raw) => raw.replace(/[*#]/g, '').trim();
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
+    if (line === '') { html += '<br>'; continue; }
 
-    if (line === '') {
-      // Línea vacía: separador visual
-      html += '<br>';
+    const p = plain(line);
+
+    // Encabezados de sección principal (con o sin **)
+    if (/^(ÍNDICE|INDICE)$/i.test(p)) {
+      section = 'indice';
+      html += '<h2><a name="indice" id="indice"></a>ÍNDICE</h2>\n';
+      continue;
+    }
+    if (/^CUERPO$/i.test(p)) { section = 'cuerpo'; html += '<h2>CUERPO</h2>\n'; continue; }
+    if (/^ALERTAS DEL D[IÍ]A$/i.test(p)) { section = 'alertas'; html += '<h2>ALERTAS DEL DÍA</h2>\n'; continue; }
+
+    if (/^---+$/.test(line)) { html += '<hr>\n'; continue; }
+
+    // Noticia numerada: "N. Título — ... — Semáforo: X"
+    const m = p.match(/^N?°?\s*(\d+)[\.\)]\s/);
+    if (m) {
+      const n = m[1];
+      if (section === 'indice') {
+        // Título del índice enlazado a su desarrollo en el cuerpo
+        html += `<p class="idx"><a href="#noticia-${n}">${inline(line)}</a></p>\n`;
+        continue;
+      }
+      if (section === 'cuerpo') {
+        hasBodyAnchors = true;
+        html += `<p class="titular"><a name="noticia-${n}" id="noticia-${n}"></a>${inline(line)}</p>\n`;
+        continue;
+      }
+      html += `<p>${inline(line)}</p>\n`;
       continue;
     }
 
-    // Encabezados de sección principal
-    if (/^(ÍNDICE|INDICE|CUERPO|ALERTAS DEL DÍA|ALERTAS DEL DIA)$/i.test(line)) {
-      html += `<h2>${line}</h2>\n`;
+    // Fuente: cierra el bloque de la noticia con un link de vuelta al índice
+    if (/^\(Fuente:/i.test(p)) {
+      html += `<p class="fuente">${escapeHtml(p)}`;
+      if (section === 'cuerpo' && hasBodyAnchors) {
+        html += ` · <a class="volver" href="#indice">Volver al índice</a>`;
+      }
+      html += '</p>\n';
       continue;
     }
 
-    // Separadores horizontales
-    if (/^---+$/.test(line)) {
-      html += '<hr>\n';
-      continue;
-    }
-
-    // Líneas de artículo con semáforo (ej: "1. Título — Semáforo: Alto")
-    if (/^N?°?\s*\d+[\.\)]\s/.test(line) || /^•\s/.test(line)) {
-      html += `<p>${badgeSemaforo(escapeHtml(line))}</p>\n`;
-      continue;
-    }
-
-    // Fuente (líneas que comienzan con "(Fuente:")
-    if (/^\(Fuente:/i.test(line)) {
-      html += `<p class="fuente">${escapeHtml(line)}</p>\n`;
-      continue;
-    }
-
-    // Resto del contenido como párrafo normal (con badge de semáforo si corresponde)
-    html += `<p>${badgeSemaforo(escapeHtml(line))}</p>\n`;
+    // Subtítulos de temática en el índice (ej: "Política") y resto del contenido
+    html += `<p>${inline(line)}</p>\n`;
   }
 
   return html;
@@ -133,6 +155,10 @@ async function sendDigest(summaryText) {
     p {
       margin: 6px 0;
     }
+    a { color: #1a4d8f; }
+    .idx a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #1a4d8f; }
+    .titular { margin-top: 18px; font-weight: bold; }
+    .volver { font-style: normal; font-size: 11px; }
     .fuente {
       font-size: 12px;
       color: #666;
@@ -243,4 +269,4 @@ async function sendDigest(summaryText) {
   throw lastMailError;
 }
 
-module.exports = { sendDigest };
+module.exports = { sendDigest, convertToHtml };

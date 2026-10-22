@@ -25,16 +25,29 @@ const ROUNDS = 2;
 const ROUND_PAUSE_MS = 90 * 1000;
 
 const RETRY_DELAY_MS = 30 * 1000;
-const MAX_BODY_CHARS = 6000; // cap por email para evitar tokens excesivos en PDFs largos
+// Límites de ENTRADA. Antes era 6.000 caracteres por correo: el 22-10-2026, 5 de 12
+// correos (El Mercurio, El Líbero, CoStar, Bloomberg Línea, Criteria) superaban ese
+// tope y cerca del 60% de su texto no llegaba a Gemini, por eso faltaban noticias.
+const MAX_BODY_CHARS  = 30000;  // tope por correo (incluye el texto de PDFs adjuntos)
+const MAX_TOTAL_CHARS = 400000; // tope total del bloque de correos (~100-130 mil tokens)
 const MAX_OUTPUT_TOKENS = 65536; // máximo de Gemini 2.5; el "thinking" también consume de este total
 const THINKING_BUDGET = 2048;    // acota el razonamiento interno para que no se coma la salida
 
 /**
  * Trunca el cuerpo si excede MAX_BODY_CHARS, dejando marca visible.
  */
-function truncateBody(body) {
-  if (!body || body.length <= MAX_BODY_CHARS) return body || '';
-  return body.slice(0, MAX_BODY_CHARS) + `\n[...truncado ${body.length - MAX_BODY_CHARS} caracteres]`;
+function truncateBody(body, limit = MAX_BODY_CHARS) {
+  if (!body || body.length <= limit) return body || '';
+  return body.slice(0, limit) + `\n[...truncado ${body.length - limit} caracteres]`;
+}
+
+/**
+ * Tope por correo para este lote: MAX_BODY_CHARS, o menos si la suma excede MAX_TOTAL_CHARS.
+ */
+function perEmailLimit(emails) {
+  const total = emails.reduce((acc, e) => acc + (e.body ? e.body.length : 0), 0);
+  if (total <= MAX_TOTAL_CHARS) return MAX_BODY_CHARS;
+  return Math.max(6000, Math.min(MAX_BODY_CHARS, Math.floor(MAX_TOTAL_CHARS / Math.max(1, emails.length))));
 }
 
 /**
@@ -46,12 +59,16 @@ function buildUserPrompt(emails) {
     timeZone: 'America/Santiago', // el runner corre en UTC
   });
 
+  const limit = perEmailLimit(emails);
+  const truncated = emails.filter((e) => e.body && e.body.length > limit).length;
+  log('INFO', `Tope por correo: ${limit} caracteres; ${truncated} de ${emails.length} correo(s) recortado(s).`);
+
   const emailsBlock = emails.map((e, i) => (
     `--- EMAIL ${i + 1} ---\n` +
     `Asunto: ${e.subject}\n` +
     `De: ${e.from}\n` +
     `Fecha: ${e.date}\n` +
-    `Contenido:\n${truncateBody(e.body)}\n`
+    `Contenido:\n${truncateBody(e.body, limit)}\n`
   )).join('\n');
 
   return `Fecha: ${today}
@@ -60,7 +77,7 @@ Procesa los siguientes ${emails.length} correos y genera un informe con el forma
 ${emailsBlock}
 --- FIN DE CORREOS ---
 
-FORMATO DE SALIDA:
+FORMATO DE SALIDA (texto plano: sin asteriscos, almohadillas ni otro formato markdown; cada noticia empieza en su propia línea con "N."):
 
 ÍNDICE
 Agrupa las noticias por temática en este orden: Política / Economía & Finanzas / Internacional / Empresas & Negocios / Tecnología / Energía & Minería / Sociedad / Deportes.
