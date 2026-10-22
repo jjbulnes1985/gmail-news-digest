@@ -8,7 +8,7 @@ const nodemailer = require('nodemailer');
 const dns        = require('dns');
 const { promisify } = require('util');
 const dnsLookup  = promisify(dns.lookup);
-const { log, formatDate } = require('./utils');
+const { log, santiagoDateDMY } = require('./utils');
 
 /**
  * Convierte el texto plano del resumen (con secciones ÍNDICE / CUERPO / ALERTAS)
@@ -87,7 +87,7 @@ function escapeHtml(str) {
  * @returns {Promise<void>}
  */
 async function sendDigest(summaryText) {
-  const today = formatDate(new Date());
+  const today = santiagoDateDMY(Date.now()); // fecha de Chile, no la del runner (UTC)
 
   // Convertir el texto a HTML con estilos de email
   const bodyHtml = convertToHtml(summaryText);

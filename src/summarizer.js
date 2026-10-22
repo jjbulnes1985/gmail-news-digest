@@ -17,8 +17,12 @@ Reglas:
 const MODEL_FALLBACKS = [
   'gemini-2.5-flash',
   'gemini-2.5-flash-lite',
-  'gemini-2.5-pro',
 ];
+// gemini-2.5-pro se retiró del fallback: la API respondió (21-10-2026) que ya no está
+// disponible para esta cuenta. Ante errores 503 por alta demanda, en vez de un tercer
+// modelo se hace una segunda vuelta completa tras una pausa más larga.
+const ROUNDS = 2;
+const ROUND_PAUSE_MS = 90 * 1000;
 
 const RETRY_DELAY_MS = 30 * 1000;
 const MAX_BODY_CHARS = 6000; // cap por email para evitar tokens excesivos en PDFs largos
@@ -37,8 +41,9 @@ function truncateBody(body) {
  * Construye el prompt del usuario a partir de los emails.
  */
 function buildUserPrompt(emails) {
-  const today = new Date().toLocaleDateString('es-AR', {
+  const today = new Date().toLocaleDateString('es-CL', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    timeZone: 'America/Santiago', // el runner corre en UTC
   });
 
   const emailsBlock = emails.map((e, i) => (
@@ -86,46 +91,52 @@ async function summarize(emails) {
   log('INFO', `Enviando ${emails.length} email(s) a Gemini para generar el resumen...`);
 
   let lastError;
-  for (const modelName of MODEL_FALLBACKS) {
-    log('INFO', `Intentando con modelo: ${modelName}`);
-    const model = genAI.getGenerativeModel({
-      model: modelName,
-      systemInstruction: SYSTEM_PROMPT,
-      generationConfig: {
-        maxOutputTokens: MAX_OUTPUT_TOKENS,
-        thinkingConfig: { thinkingBudget: THINKING_BUDGET },
-      },
-    });
+  for (let round = 1; round <= ROUNDS; round++) {
+    if (round > 1) {
+      log('WARN', `Vuelta ${round - 1} sin éxito. Esperando ${ROUND_PAUSE_MS / 1000}s antes de la vuelta ${round}/${ROUNDS}...`);
+      await new Promise((r) => setTimeout(r, ROUND_PAUSE_MS));
+    }
+    for (const modelName of MODEL_FALLBACKS) {
+      log('INFO', `Intentando con modelo: ${modelName} (vuelta ${round}/${ROUNDS})`);
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        systemInstruction: SYSTEM_PROMPT,
+        generationConfig: {
+          maxOutputTokens: MAX_OUTPUT_TOKENS,
+          thinkingConfig: { thinkingBudget: THINKING_BUDGET },
+        },
+      });
 
-    for (let attempt = 1; attempt <= 2; attempt++) {
-      try {
-        const result = await model.generateContent(userPrompt);
-        const text = result.response.text();
-        if (!text) throw new Error('Gemini devolvió una respuesta vacía.');
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          const result = await model.generateContent(userPrompt);
+          const text = result.response.text();
+          if (!text) throw new Error('Gemini devolvió una respuesta vacía.');
 
-        // Gemini corta en silencio al llegar al límite de tokens: text() devuelve el
-        // fragmento sin error. Un informe cortado no se envía; se prueba otro modelo.
-        const finishReason = result.response.candidates?.[0]?.finishReason;
-        if (finishReason && finishReason !== 'STOP') {
-          throw new Error(`respuesta incompleta (finishReason=${finishReason}, ${text.length} caracteres)`);
-        }
-        if (!/ALERTAS DEL D[IÍ]A/i.test(text)) {
-          throw new Error('respuesta incompleta (falta la sección ALERTAS DEL DÍA)');
-        }
+          // Gemini corta en silencio al llegar al límite de tokens: text() devuelve el
+          // fragmento sin error. Un informe cortado no se envía; se prueba otro modelo.
+          const finishReason = result.response.candidates?.[0]?.finishReason;
+          if (finishReason && finishReason !== 'STOP') {
+            throw new Error(`respuesta incompleta (finishReason=${finishReason}, ${text.length} caracteres)`);
+          }
+          if (!/ALERTAS DEL D[IÍ]A/i.test(text)) {
+            throw new Error('respuesta incompleta (falta la sección ALERTAS DEL DÍA)');
+          }
 
-        log('INFO', `Resumen generado con ${modelName} (${text.length} caracteres).`);
-        return text;
-      } catch (err) {
-        lastError = err;
-        if (err.message.includes('limit: 0')) {
-          log('WARN', `${modelName} sin cuota disponible. Saltando al siguiente modelo...`);
-          break;
-        }
-        if (attempt < 2) {
-          log('WARN', `${modelName} intento ${attempt}/2 fallido: ${err.message}. Reintentando en ${RETRY_DELAY_MS / 1000}s...`);
-          await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
-        } else {
-          log('WARN', `${modelName} agotó sus intentos. Saltando al siguiente modelo...`);
+          log('INFO', `Resumen generado con ${modelName} (${text.length} caracteres).`);
+          return text;
+        } catch (err) {
+          lastError = err;
+          if (err.message.includes('limit: 0')) {
+            log('WARN', `${modelName} sin cuota disponible. Saltando al siguiente modelo...`);
+            break;
+          }
+          if (attempt < 2) {
+            log('WARN', `${modelName} intento ${attempt}/2 fallido: ${err.message}. Reintentando en ${RETRY_DELAY_MS / 1000}s...`);
+            await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+          } else {
+            log('WARN', `${modelName} agotó sus intentos. Saltando al siguiente modelo...`);
+          }
         }
       }
     }
