@@ -108,11 +108,16 @@ function escapeHtml(str) {
  * @param {string} summaryText - Texto plano del resumen generado por Claude
  * @returns {Promise<void>}
  */
-async function sendDigest(summaryText) {
+async function sendDigest(summaryText, audio = null) {
   const today = santiagoDateDMY(Date.now()); // fecha de Chile, no la del runner (UTC)
 
   // Convertir el texto a HTML con estilos de email
-  const bodyHtml = convertToHtml(summaryText);
+  let bodyHtml = convertToHtml(summaryText);
+  if (audio && audio.ok) {
+    bodyHtml = `<p class="audio-nota">🎧 Resumen en audio adjunto (alertas, noticias Alto y Medio; ${audio.minutes.toFixed(0)} min aprox.).</p>\n` + bodyHtml;
+  } else if (audio && audio.reason) {
+    bodyHtml = `<p class="audio-nota">Audio no disponible hoy: ${escapeHtml(audio.reason)}</p>\n` + bodyHtml;
+  }
 
   // Plantilla HTML completa del email
   const htmlEmail = `<!DOCTYPE html>
@@ -159,6 +164,7 @@ async function sendDigest(summaryText) {
     .idx a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #1a4d8f; }
     .titular { margin-top: 18px; font-weight: bold; }
     .volver { font-style: normal; font-size: 11px; }
+    .audio-nota { font-family: Arial, sans-serif; font-size: 13px; background: #f3f6fa; border-left: 3px solid #1a4d8f; padding: 8px 10px; }
     .fuente {
       font-size: 12px;
       color: #666;
@@ -248,6 +254,9 @@ async function sendDigest(summaryText) {
     subject: `📰 Resumen Noticias — ${today}`,
     html:    htmlEmail,
     text:    summaryText,
+    attachments: (audio && audio.ok)
+      ? [{ filename: `Resumen-Noticias-${today.replace(/\//g, '-')}.mp3`, path: audio.path, contentType: 'audio/mpeg' }]
+      : [],
   };
 
   // 3 intentos con 10s de espera entre ellos
