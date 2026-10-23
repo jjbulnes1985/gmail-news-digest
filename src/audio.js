@@ -26,9 +26,16 @@ const TTS_MODELS     = ['gemini-3.8-flash-lite-tts', 'gemini-3.8-flash-tts']; //
 const VOICE          = process.env.TTS_VOICE || 'Kore';
 const STYLE          = 'lectura de noticiero en español, tono sobrio y claro, ritmo moderado';
 const SAMPLE_RATE    = 24000;          // PCM 16 bits, mono (formato documentado de salida)
-const MAX_CHUNK_CHARS = 2500;          // fragmentos cortos: menos riesgo de rechazo o corte
-const CONCURRENCY    = 4;
-const BUDGET_MS      = parseInt(process.env.AUDIO_BUDGET_MS, 10) || 10 * 60 * 1000; // al plazo se abortan también las llamadas en curso
+// El plan gratuito de Gemini TTS permite 3 solicitudes por minuto (error HTTP 429 del
+// 23-10-2026). Por eso las noticias se AGRUPAN en pocos fragmentos grandes y las
+// solicitudes se espacian según AUDIO_RPM. Con 45.000 caracteres son ~9 solicitudes.
+const MAX_CHUNK_CHARS = parseInt(process.env.AUDIO_CHUNK_CHARS, 10) || 5000;
+const AUDIO_RPM      = parseFloat(process.env.AUDIO_RPM) || 3;
+const MIN_INTERVAL_MS = Math.ceil(60000 / AUDIO_RPM) + 1000;   // 3 RPM → una solicitud cada 21 s
+const CONCURRENCY    = 2;               // el espaciado manda; 2 permite solapar generaciones largas
+const REQUEST_TIMEOUT_MS = 5 * 60 * 1000;
+const CHARS_PER_SECOND = 15;            // supuesto de ritmo de lectura (900 por minuto), solo para alertas
+const BUDGET_MS      = parseInt(process.env.AUDIO_BUDGET_MS, 10) || 12 * 60 * 1000; // al plazo se abortan también las llamadas en curso
 const MP3_BITRATE    = '40k';          // voz mono: 18 MB por hora
 const MP3_FALLBACK_BITRATE = '32k';    // re-codificación si el MP3 excede el tope
 // Gmail limita el mensaje CODIFICADO a 25 MB y base64 infla 4/3: 25 × 3/4 = 18,75 MB.
@@ -102,18 +109,36 @@ function buildScript(text, dateLabel) {
   }
   parts.push('Fin del resumen.');
 
-  // Divide fragmentos largos por oraciones para no exceder MAX_CHUNK_CHARS
-  const out = [];
+  // 1) Divide las partes demasiado largas por oraciones.
+  const pieces = [];
   for (const p of parts) {
-    if (p.length <= MAX_CHUNK_CHARS) { out.push(p); continue; }
+    if (p.length <= MAX_CHUNK_CHARS) { pieces.push(p); continue; }
     let cur = '';
     for (const s of p.split(/(?<=[\.\!\?])\s+/)) {
-      if ((cur + ' ' + s).length > MAX_CHUNK_CHARS && cur) { out.push(cur); cur = s; }
+      if ((cur + ' ' + s).length > MAX_CHUNK_CHARS && cur) { pieces.push(cur); cur = s; }
       else cur = cur ? `${cur} ${s}` : s;
     }
-    if (cur) out.push(cur);
+    if (cur) pieces.push(cur);
   }
-  return { chunks: out, counts: { alerts: alerts.length, alto: alto.length, medio: medio.length } };
+
+  // 2) AGRUPA piezas consecutivas hasta MAX_CHUNK_CHARS (menos solicitudes a la API).
+  //    Se separan con párrafo para que la voz haga una pausa entre noticias.
+  //    Cada fragmento guarda la última noticia o alerta que incluye (para audio parcial).
+  const chunks = [];
+  const labels = [];
+  let cur = '';
+  let lastLabel = 'la introducción';
+  for (const piece of pieces) {
+    const m = piece.match(/^(Noticia \d+|Alerta \d+)\./);
+    if (cur && (cur.length + 2 + piece.length) > MAX_CHUNK_CHARS) {
+      chunks.push(cur); labels.push(lastLabel); cur = '';
+    }
+    cur = cur ? `${cur}\n\n${piece}` : piece;
+    if (m) lastLabel = m[1].replace('Noticia', 'la noticia').replace('Alerta', 'la alerta');
+  }
+  if (cur) { chunks.push(cur); labels.push(lastLabel); }
+
+  return { chunks, labels, counts: { alerts: alerts.length, alto: alto.length, medio: medio.length } };
 }
 
 // ─── Audio ─────────────────────────────────────────────────────────────────
@@ -164,7 +189,7 @@ async function ttsOnce(model, text, signal) {
       response_format: { type: 'audio' },
       generation_config: { speech_config: [{ voice: VOICE }] },
     }),
-    signal: AbortSignal.any([signal, AbortSignal.timeout(120 * 1000)]),
+    signal: AbortSignal.any([signal, AbortSignal.timeout(REQUEST_TIMEOUT_MS)]),
   });
   if (!res.ok) {
     const detail = (await res.text()).slice(0, 300);
@@ -191,19 +216,51 @@ function sleep(ms, signal) {
  * ante 429/503 se reintenta el mismo. Si todos los preferidos quedan descartados, se
  * descubre un reemplazo vía /v1beta/models (una sola vez por corrida, compartido).
  */
+/**
+ * Espera el próximo turno libre según AUDIO_RPM (compartido entre trabajadores).
+ * Garantiza que dos solicitudes nunca empiecen con menos de MIN_INTERVAL_MS de diferencia.
+ */
+async function waitForSlot(state, signal) {
+  const now = Date.now();
+  const start = Math.max(now, state.nextSlot);
+  state.nextSlot = start + MIN_INTERVAL_MS;
+  if (start > now) await sleep(start - now, signal);
+}
+
+/** Segundos que la API pide esperar ("Please retry in 4s"), o null. */
+function retryAfterSeconds(err) {
+  const m = String(err && err.message || '').match(/retry in\s*([\d.]+)\s*s/i);
+  return m ? parseFloat(m[1]) : null;
+}
+
 async function ttsChunk(text, state, signal) {
   let lastErr;
   for (let idx = 0; idx < state.models.length; idx++) {
     const model = state.models[idx];
     if (state.unavailable.has(model)) continue;
-    for (let attempt = 1; attempt <= 3; attempt++) {
+    for (let attempt = 1; attempt <= 6; attempt++) {
       if (signal.aborted) throw new Error('presupuesto de tiempo agotado');
       try {
-        return await ttsOnce(model, text, signal);
+        await waitForSlot(state, signal);
+        const pcm = await ttsOnce(model, text, signal);
+        state.usedModels.add(model);
+        return pcm;
       } catch (err) {
         if (signal.aborted) throw new Error('presupuesto de tiempo agotado');
         lastErr = err;
+        // Cuota DIARIA agotada: no tiene sentido reintentar hoy.
+        if (err.status === 429 && /per day|daily|RPD/i.test(err.message)) {
+          throw new Error(`cuota diaria de voz agotada (${model}): ${err.message.slice(0, 160)}`);
+        }
+        // Límite por minuto: espera lo que pide la API (o un intervalo) y reintenta el mismo modelo.
+        if (err.status === 429) {
+          const wait = ((retryAfterSeconds(err) || MIN_INTERVAL_MS / 1000) + 1) * 1000;
+          log('WARN', `Voz ${model}: límite por minuto, espero ${(wait / 1000).toFixed(0)} s (intento ${attempt}/6).`);
+          state.nextSlot = Math.max(state.nextSlot, Date.now() + wait);
+          continue;
+        }
         if (isUnavailable(err)) {
+          log('WARN', `Modelo de voz ${model} no disponible: ${err.message.slice(0, 160)}. Se descarta.`);
           state.unavailable.add(model);
           if (state.models.every((m) => state.unavailable.has(m)) && !state.discovery) {
             state.discovery = discoverModel('tts', [...state.unavailable]).then((alt) => {
@@ -214,7 +271,8 @@ async function ttsChunk(text, state, signal) {
           if (state.discovery) await state.discovery;
           break; // siguiente modelo de la lista (incluido el descubierto)
         }
-        if (attempt < 3) await sleep(5000 * attempt, signal); // 429/503: espera creciente, mismo modelo
+        if (attempt < 3) { await sleep(5000 * attempt, signal); continue; } // 503 u otro: espera creciente
+        break; // tras 3 errores no transitorios, siguiente modelo
       }
     }
   }
@@ -240,34 +298,49 @@ async function generateAudio(reportText, dateLabel) {
   const started = Date.now();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), BUDGET_MS);
-  const state = { models: [...TTS_MODELS], unavailable: new Set(), discovery: null };
+  const state = { models: [...TTS_MODELS], unavailable: new Set(), discovery: null, nextSlot: 0, usedModels: new Set() };
   try {
-    const { chunks, counts } = buildScript(reportText, dateLabel);
+    const { chunks, labels, counts } = buildScript(reportText, dateLabel);
     const chars = chunks.reduce((a, c) => a + c.length, 0);
-    log('INFO', `Audio: ${counts.alerts} alertas, ${counts.alto} Alto, ${counts.medio} Medio; ${chunks.length} fragmentos, ${chars} caracteres.`);
+    log('INFO', `Audio: ${counts.alerts} alertas, ${counts.alto} Alto, ${counts.medio} Medio; ${chunks.length} fragmentos, ${chars} caracteres; ${AUDIO_RPM} solicitudes por minuto.`);
     if (counts.alto + counts.medio + counts.alerts === 0) {
       return { ok: false, reason: 'no se encontraron alertas ni noticias Alto o Medio en el informe' };
     }
 
     const results = new Array(chunks.length);
     let next = 0;
-    let failed = false; // si un fragmento falla, los demás trabajadores se detienen
+    let failure = null; // si un fragmento falla, los demás trabajadores se detienen
     const worker = async () => {
-      while (!failed && next < chunks.length) {
+      while (!failure && next < chunks.length) {
         const k = next++;
         try {
           results[k] = await ttsChunk(chunks[k], state, controller.signal);
+          const got = results[k].length / 2 / SAMPLE_RATE;
+          const expected = chunks[k].length / CHARS_PER_SECOND;
+          if (got < expected * 0.4) {
+            log('WARN', `Fragmento ${k + 1}: ${got.toFixed(0)} s de audio para ${chunks[k].length} caracteres (se esperaban ~${expected.toFixed(0)} s); posible audio cortado.`);
+          }
         } catch (err) {
-          failed = true;
-          throw err;
+          failure = failure || err;
         }
       }
     };
     await Promise.all(Array.from({ length: Math.min(CONCURRENCY, chunks.length) }, worker));
     clearTimeout(timer);
+    if (state.usedModels.size) log('INFO', `Modelo(s) de voz usados: ${[...state.usedModels].join(', ')}.`);
+
+    // Audio parcial: si algo falló, se usa el tramo inicial completo (alertas y noticias
+    // en orden de prioridad) en vez de perder todo el audio.
+    let usable = results.length;
+    for (let k = 0; k < results.length; k++) { if (!results[k]) { usable = k; break; } }
+    if (failure && usable === 0) throw failure;
+    const partial = usable < results.length;
+    if (partial) {
+      log('WARN', `Audio parcial: ${usable} de ${results.length} fragmentos (hasta ${labels[usable - 1]}). Motivo: ${failure ? failure.message : 'fragmentos faltantes'}`);
+    }
 
     const silence = Buffer.alloc(Math.round(SAMPLE_RATE * PAUSE_SECONDS) * 2);
-    const pcm = Buffer.concat(results.flatMap((b) => [b, silence]));
+    const pcm = Buffer.concat(results.slice(0, usable).flatMap((b) => [b, silence]));
     const minutes = pcm.length / 2 / SAMPLE_RATE / 60;
 
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'audio-'));
@@ -285,6 +358,13 @@ async function generateAudio(reportText, dateLabel) {
     log('INFO', `Audio generado: ${minutes.toFixed(1)} min, ${(bytes / 1e6).toFixed(1)} MB a ${bitrate}, en ${secs} s.`);
     if (bytes > MAX_MP3_BYTES) {
       return { ok: false, reason: `MP3 de ${(bytes / 1e6).toFixed(1)} MB excede el tope de ${(MAX_MP3_BYTES / 1e6).toFixed(1)} MB (límite de 25 MB de Gmail con codificación base64)` };
+    }
+    if (partial) {
+      return {
+        ok: true, partial: true, path: mp3Path, minutes,
+        coverage: `incluye hasta ${labels[usable - 1]} (${usable} de ${results.length} fragmentos)`,
+        reason: (failure ? failure.message : 'fragmentos faltantes').slice(0, 200),
+      };
     }
     return { ok: true, path: mp3Path, minutes };
   } catch (err) {

@@ -329,4 +329,33 @@ async function getEmails(auth) {
   return emails;
 }
 
-module.exports = { authorize, getEmails };
+/**
+ * Busca el último correo "📰 Resumen Noticias" enviado (últimos 3 días) y devuelve su texto.
+ * Se usa en el modo --audio-only para regenerar el audio de un día en que falló.
+ * @param {google.auth.OAuth2} auth
+ * @returns {Promise<{text: string, subject: string, dateDMY: string}>}
+ */
+async function getLatestDigest(auth) {
+  const gmail = google.gmail({ version: 'v1', auth });
+  const list = await gmail.users.messages.list({
+    userId: 'me', q: 'subject:"Resumen Noticias" -subject:Audio newer_than:3d', maxResults: 10,
+  });
+  const ids = (list.data.messages || []).map((m) => m.id);
+  let best = null;
+  for (const id of ids) {
+    const msg = await gmail.users.messages.get({ userId: 'me', id, format: 'full' });
+    const headers = msg.data.payload.headers || [];
+    const subject = (headers.find((h) => h.name.toLowerCase() === 'subject') || {}).value || '';
+    const m = subject.match(/Resumen Noticias\s*\S*\s*(\d{2}\/\d{2}\/\d{4})/);
+    if (!m || /audio/i.test(subject)) continue;
+    const ts = Number(msg.data.internalDate || 0);
+    if (!best || ts > best.ts) best = { ts, subject, dateDMY: m[1], payload: msg.data.payload };
+  }
+  if (!best) throw new Error('no se encontró un correo "Resumen Noticias" de los últimos 3 días');
+  const text = parseBody(best.payload);
+  if (!/ALERTAS DEL D[IÍ]A/i.test(text)) throw new Error('el correo encontrado no tiene el formato del resumen');
+  log('INFO', `Resumen encontrado: "${best.subject}" (${text.length} caracteres).`);
+  return { text, subject: best.subject, dateDMY: best.dateDMY };
+}
+
+module.exports = { authorize, getEmails, getLatestDigest };

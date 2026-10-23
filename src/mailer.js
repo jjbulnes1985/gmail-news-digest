@@ -22,6 +22,8 @@ function convertToHtml(text) {
   let html = '';
   let section = '';          // 'indice' | 'cuerpo' | 'alertas' | ''
   let hasBodyAnchors = false;
+  let currentNews = null;     // número de la noticia del cuerpo que se está escribiendo
+  const indexNums = new Set(); // números que tienen titular en el índice
 
   // Colorea el semáforo
   const badgeSemaforo = (linea) => linea
@@ -61,12 +63,15 @@ function convertToHtml(text) {
     if (m) {
       const n = m[1];
       if (section === 'indice') {
-        // Título del índice enlazado a su desarrollo en el cuerpo
-        html += `<p class="idx"><a href="#noticia-${n}">${inline(line)}</a></p>\n`;
+        // Título del índice enlazado a su desarrollo en el cuerpo; lleva su propia ancla
+        // ("idx-N") para que el desarrollo pueda volver exactamente a este titular
+        indexNums.add(n);
+        html += `<p class="idx"><a name="idx-${n}" id="idx-${n}"></a><a href="#noticia-${n}">${inline(line)}</a></p>\n`;
         continue;
       }
       if (section === 'cuerpo') {
         hasBodyAnchors = true;
+        currentNews = n;
         html += `<p class="titular"><a name="noticia-${n}" id="noticia-${n}"></a>${inline(line)}</p>\n`;
         continue;
       }
@@ -74,11 +79,14 @@ function convertToHtml(text) {
       continue;
     }
 
-    // Fuente: cierra el bloque de la noticia con un link de vuelta al índice
+    // Fuente: cierra el bloque de la noticia con un link de vuelta a SU titular en el
+    // índice (no al comienzo), para seguir leyendo desde donde se iba. Si ese titular
+    // no está en el índice, el link vuelve al comienzo del índice.
     if (/^\(Fuente:/i.test(p)) {
       html += `<p class="fuente">${escapeHtml(p)}`;
       if (section === 'cuerpo' && hasBodyAnchors) {
-        html += ` · <a class="volver" href="#indice">Volver al índice</a>`;
+        const target = currentNews && indexNums.has(currentNews) ? `idx-${currentNews}` : 'indice';
+        html += ` · <a class="volver" href="#${target}">Volver al titular</a>`;
       }
       html += '</p>\n';
       continue;
@@ -116,7 +124,9 @@ async function sendDigest(summaryText, audio = null) {
   let bodyHtml = convertToHtml(summaryText);
   // Si en esta corrida se cambió de modelo automáticamente, se informa al pie
   const modelChangesHtml = getChanges().map((c) => `<br>${escapeHtml(c)}`).join('');
-  if (audio && audio.ok) {
+  if (audio && audio.ok && audio.partial) {
+    bodyHtml = `<p class="audio-nota">🎧 Audio PARCIAL adjunto (${audio.minutes.toFixed(0)} min aprox.): ${escapeHtml(audio.coverage)}. Motivo: ${escapeHtml(audio.reason)}</p>\n` + bodyHtml;
+  } else if (audio && audio.ok) {
     bodyHtml = `<p class="audio-nota">🎧 Resumen en audio adjunto (alertas, noticias Alto y Medio; ${audio.minutes.toFixed(0)} min aprox.).</p>\n` + bodyHtml;
   } else if (audio && audio.reason) {
     bodyHtml = `<p class="audio-nota">Audio no disponible hoy: ${escapeHtml(audio.reason)}</p>\n` + bodyHtml;
@@ -221,6 +231,25 @@ async function sendDigest(summaryText, audio = null) {
 </body>
 </html>`;
 
+  const mailOptions = {
+    from:    `"Resumen Noticias" <${process.env.SMTP_USER}>`,
+    to:      process.env.DIGEST_RECIPIENT,
+    subject: `📰 Resumen Noticias — ${today}`,
+    html:    htmlEmail,
+    text:    summaryText,
+    attachments: (audio && audio.ok)
+      ? [{ filename: `Resumen-Noticias-${today.replace(/\//g, '-')}.mp3`, path: audio.path, contentType: 'audio/mpeg' }]
+      : [],
+  };
+
+  await deliver(mailOptions);
+}
+
+/**
+ * Envía un correo por SMTP con 3 intentos (10 s entre ellos).
+ * @param {object} mailOptions - opciones de nodemailer
+ */
+async function deliver(mailOptions) {
   // Configurar transporte SMTP
   // IMPORTANTE: secure: false + port 587 = STARTTLS (correcto para Gmail)
   //             secure: true  + port 465 = SSL implícito (alternativa)
@@ -251,17 +280,6 @@ async function sendDigest(summaryText, audio = null) {
     socketTimeout:     30000,
   });
 
-  const mailOptions = {
-    from:    `"Resumen Noticias" <${process.env.SMTP_USER}>`,
-    to:      process.env.DIGEST_RECIPIENT,
-    subject: `📰 Resumen Noticias — ${today}`,
-    html:    htmlEmail,
-    text:    summaryText,
-    attachments: (audio && audio.ok)
-      ? [{ filename: `Resumen-Noticias-${today.replace(/\//g, '-')}.mp3`, path: audio.path, contentType: 'audio/mpeg' }]
-      : [],
-  };
-
   // 3 intentos con 10s de espera entre ellos
   const MAX_MAIL_RETRIES = 3;
   let lastMailError;
@@ -281,4 +299,23 @@ async function sendDigest(summaryText, audio = null) {
   throw lastMailError;
 }
 
-module.exports = { sendDigest, convertToHtml };
+/**
+ * Envía SOLO el audio (modo --audio-only), para regenerar el MP3 de un día en que falló.
+ * @param {{ok:boolean, path?:string, minutes?:number, partial?:boolean, coverage?:string, reason?:string}} audio
+ * @param {string} dateDMY - fecha del resumen original (dd/mm/aaaa)
+ */
+async function sendAudioOnly(audio, dateDMY) {
+  if (!audio || !audio.ok) throw new Error(`no hay audio que enviar: ${audio && audio.reason}`);
+  const extra = audio.partial ? ` Audio PARCIAL: ${audio.coverage}. Motivo: ${audio.reason}` : '';
+  const text = `Audio del Resumen Noticias del ${dateDMY} (alertas, noticias Alto y Medio; ${audio.minutes.toFixed(0)} min aprox.).${extra}`;
+  await deliver({
+    from:    `"Resumen Noticias" <${process.env.SMTP_USER}>`,
+    to:      process.env.DIGEST_RECIPIENT,
+    subject: `🎧 Audio Resumen Noticias — ${dateDMY}`,
+    text,
+    html:    `<p style="font-family:Arial,sans-serif;font-size:14px">${escapeHtml(text)}</p>`,
+    attachments: [{ filename: `Resumen-Noticias-${dateDMY.replace(/\//g, '-')}.mp3`, path: audio.path, contentType: 'audio/mpeg' }],
+  });
+}
+
+module.exports = { sendDigest, sendAudioOnly, convertToHtml };

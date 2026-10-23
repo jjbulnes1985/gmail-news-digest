@@ -12,6 +12,13 @@ on:
     - cron: '45 12 * * *'   # 9:45 nominal
   workflow_dispatch:         # DISPARADOR PRINCIPAL: tarea programada de Claude a las 8:20 Chile
                              # (vía conexión GitHub en Composio); también manual.
+    inputs:
+      modo:
+        description: 'normal = resumen diario; solo-audio = regenera y envía solo el MP3 del último resumen'
+        required: false
+        default: normal
+        type: choice
+        options: [normal, solo-audio]
 
 # Evita que dos disparos cercanos corran en paralelo. El segundo espera en cola,
 # así el control de idempotencia siempre ve el last_run.json ya actualizado.
@@ -59,7 +66,7 @@ jobs:
           OAUTH_TOKEN: ${{ secrets.OAUTH_TOKEN }}
 
       - name: Ejecutar pipeline
-        run: node src/index.js --run-now
+        run: node src/index.js ${{ inputs.modo == 'solo-audio' && '--audio-only' || '--run-now' }}
 
       - name: Guardar last_run.json
         run: |
