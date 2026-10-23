@@ -51,7 +51,7 @@ const MP3_FALLBACK_BITRATE = '32k';    // re-codificación si el MP3 excede el t
 // Tope del MP3 con margen: 18 MB (18.000.000 bytes).
 const MAX_MP3_BYTES  = parseInt(process.env.AUDIO_MAX_MP3_BYTES, 10) || 18 * 1000 * 1000;
 const PAUSE_SECONDS  = 1.2;            // silencio entre secciones (y tras el índice)
-const M4A_BITRATE    = '48k';          // AAC mono para voz: ~21,6 MB por hora
+const M4A_BITRATE    = '40k';          // AAC mono para voz: 18 MB por hora (medido: 51,6 min a 48k = 19,2 MB)
 const ENGINE         = (process.env.AUDIO_ENGINE || 'auto').toLowerCase();
 const PIPER_PYTHON   = process.env.PIPER_PYTHON || 'python3';
 const PIPER_VOICE    = process.env.PIPER_VOICE || path.join(__dirname, '..', 'voz', 'es_MX-claude-high.onnx');
@@ -458,16 +458,28 @@ async function synthGeminiAll(secciones, signal) {
 /** Escapa texto para el formato FFMETADATA1. */
 function metaEscape(v) { return String(v).replace(/([=;#\\\n])/g, '\\$1'); }
 
-/** Codifica PCM a MP3 y M4A con capítulos. Devuelve rutas y tamaños. */
-function encodeOutputs(pcmPath, sampleRate, metaPath, dir, mp3Bitrate = MP3_BITRATE, m4aBitrate = M4A_BITRATE) {
+/**
+ * Codifica PCM a un formato con capítulos. Si el archivo supera el tope, re-codifica
+ * SOLO ese formato a 32 kbps. Devuelve { path, bytes, bitrate }.
+ */
+function encodeFormat(pcmPath, sampleRate, metaPath, dir, ext) {
   const ff = ffmpegPath();
   const input = ['-y', '-loglevel', 'error', '-f', 's16le', '-ar', String(sampleRate), '-ac', '1', '-i', pcmPath,
     '-i', metaPath, '-map', '0:a', '-map_metadata', '1', '-map_chapters', '1'];
-  const mp3 = path.join(dir, 'resumen.mp3');
-  const m4a = path.join(dir, 'resumen.m4a');
-  execFileSync(ff, [...input, '-c:a', 'libmp3lame', '-b:a', mp3Bitrate, '-id3v2_version', '3', mp3]);
-  execFileSync(ff, [...input, '-c:a', 'aac', '-b:a', m4aBitrate, '-movflags', '+faststart', m4a]);
-  return { mp3, m4a, mp3Bytes: fs.statSync(mp3).size, m4aBytes: fs.statSync(m4a).size };
+  const codec = (br) => (ext === 'mp3'
+    ? ['-c:a', 'libmp3lame', '-b:a', br, '-id3v2_version', '3']
+    : ['-c:a', 'aac', '-b:a', br, '-movflags', '+faststart']);
+  const out = path.join(dir, `resumen.${ext}`);
+  let bitrate = ext === 'mp3' ? MP3_BITRATE : M4A_BITRATE;
+  execFileSync(ff, [...input, ...codec(bitrate), out]);
+  let bytes = fs.statSync(out).size;
+  if (bytes > MAX_MP3_BYTES) {
+    log('WARN', `${ext.toUpperCase()} de ${(bytes / 1e6).toFixed(1)} MB supera el tope de ${(MAX_MP3_BYTES / 1e6).toFixed(1)} MB; re-codificando a ${MP3_FALLBACK_BITRATE}.`);
+    bitrate = MP3_FALLBACK_BITRATE;
+    execFileSync(ff, [...input, ...codec(bitrate), out]);
+    bytes = fs.statSync(out).size;
+  }
+  return { path: out, bytes, bitrate };
 }
 
 /**
@@ -549,16 +561,13 @@ async function generateAudio(reportText, dateLabel) {
     const metaPath = path.join(dir, 'meta.txt');
     fs.writeFileSync(metaPath, meta, 'utf-8');
 
-    let enc = encodeOutputs(pcmPath, r.sampleRate, metaPath, dir);
-    if (enc.mp3Bytes > MAX_MP3_BYTES || enc.m4aBytes > MAX_MP3_BYTES) {
-      log('WARN', `Archivos sobre el tope (${(enc.mp3Bytes / 1e6).toFixed(1)} y ${(enc.m4aBytes / 1e6).toFixed(1)} MB); re-codificando a 32 kbps.`);
-      enc = encodeOutputs(pcmPath, r.sampleRate, metaPath, dir, MP3_FALLBACK_BITRATE, '32k');
-    }
+    const mp3 = encodeFormat(pcmPath, r.sampleRate, metaPath, dir, 'mp3');
+    const m4a = encodeFormat(pcmPath, r.sampleRate, metaPath, dir, 'm4a');
     const files = [];
-    if (enc.mp3Bytes <= MAX_MP3_BYTES) files.push({ path: enc.mp3, ext: 'mp3', contentType: 'audio/mpeg', bytes: enc.mp3Bytes });
-    if (enc.m4aBytes <= MAX_MP3_BYTES) files.push({ path: enc.m4a, ext: 'm4a', contentType: 'audio/mp4', bytes: enc.m4aBytes });
+    if (mp3.bytes <= MAX_MP3_BYTES) files.push({ path: mp3.path, ext: 'mp3', contentType: 'audio/mpeg', bytes: mp3.bytes });
+    if (m4a.bytes <= MAX_MP3_BYTES) files.push({ path: m4a.path, ext: 'm4a', contentType: 'audio/mp4', bytes: m4a.bytes });
     const secs = ((Date.now() - started) / 1000).toFixed(0);
-    log('INFO', `Audio generado: ${(total / 60).toFixed(1)} min, ${chapters.length} capítulos, MP3 ${(enc.mp3Bytes / 1e6).toFixed(1)} MB, M4A ${(enc.m4aBytes / 1e6).toFixed(1)} MB, en ${secs} s.`);
+    log('INFO', `Audio generado: ${(total / 60).toFixed(1)} min, ${chapters.length} capítulos, MP3 ${(mp3.bytes / 1e6).toFixed(1)} MB a ${mp3.bitrate}, M4A ${(m4a.bytes / 1e6).toFixed(1)} MB a ${m4a.bitrate}, en ${secs} s.`);
     if (!files.length) return { ok: false, reason: 'los archivos de audio exceden el tope de 18 MB (límite de 25 MB de Gmail con codificación base64)' };
 
     const out = {
