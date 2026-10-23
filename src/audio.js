@@ -1,23 +1,32 @@
 'use strict';
 
 /**
- * audio.js — Genera un resumen en audio (MP3) a partir del informe escrito.
+ * audio.js — Resumen en audio con índice hablado y capítulos (MP3 + M4A).
  *
- * Contenido: alertas del día + noticias con semáforo Alto + noticias Medio.
- * Motor: Gemini TTS vía Interactions API (misma GEMINI_API_KEY del resumen).
- * Se generan fragmentos por noticia, se concatena el PCM y ffmpeg lo codifica a MP3.
+ * Contenido: alertas del día + noticias Alto y Medio, agrupadas por temática
+ * (una sección por temática, en el orden en que aparecen en el índice; dentro de
+ * cada una, Alto antes que Medio). El audio parte con un saludo y un ÍNDICE
+ * HABLADO que dice en qué minuto empieza cada sección, y lleva CAPÍTULOS
+ * (metadatos) en ambos formatos.
  *
- * El audio NUNCA bloquea el envío del correo: ante cualquier error o si se excede
- * el presupuesto de tiempo, generateAudio devuelve { ok: false, reason } y el
- * correo sale sin adjunto, indicando el motivo.
+ * Motores de voz:
+ *   - Piper (local, sin cuotas; voz es_MX-claude-high) por defecto, si está instalado.
+ *   - Gemini TTS (Interactions API) como respaldo, con las reglas de cuota del plan
+ *     gratuito (3 solicitudes por minuto y 10 por día por modelo).
+ * AUDIO_ENGINE=auto|piper|gemini elige el motor (auto = Piper si está disponible).
+ *
+ * El texto se normaliza para lectura (cifras, US$, %, fechas en palabras) con
+ * speech-text.js. El audio NUNCA bloquea el envío del correo: ante cualquier error
+ * generateAudio devuelve { ok: false, reason } y el correo sale con el motivo.
  */
 
 const fs   = require('fs');
 const os   = require('os');
 const path = require('path');
-const { execFileSync } = require('child_process');
+const { execFileSync, spawn, spawnSync } = require('child_process');
 const { log } = require('./utils');
 const { isUnavailable, discoverModel, recordChange } = require('./models');
+const { normalizeForSpeech } = require('./speech-text');
 
 const TTS_ENDPOINT   = 'https://generativelanguage.googleapis.com/v1beta/interactions';
 // Modelos vigentes según la documentación de Gemini (consultada el 22-10-2026).
@@ -26,15 +35,28 @@ const TTS_MODELS     = ['gemini-3.8-flash-lite-tts', 'gemini-3.8-flash-tts']; //
 const VOICE          = process.env.TTS_VOICE || 'Kore';
 const STYLE          = 'lectura de noticiero en español, tono sobrio y claro, ritmo moderado';
 const SAMPLE_RATE    = 24000;          // PCM 16 bits, mono (formato documentado de salida)
-const MAX_CHUNK_CHARS = 2500;          // fragmentos cortos: menos riesgo de rechazo o corte
-const CONCURRENCY    = 4;
-const BUDGET_MS      = parseInt(process.env.AUDIO_BUDGET_MS, 10) || 10 * 60 * 1000; // al plazo se abortan también las llamadas en curso
+// El plan gratuito de Gemini TTS permite 3 solicitudes por minuto (error HTTP 429 del
+// 23-10-2026). Por eso las noticias se AGRUPAN en pocos fragmentos grandes y las
+// solicitudes se espacian según AUDIO_RPM. Con 45.000 caracteres son ~9 solicitudes.
+const MAX_CHUNK_CHARS = parseInt(process.env.AUDIO_CHUNK_CHARS, 10) || 5000;
+const AUDIO_RPM      = parseFloat(process.env.AUDIO_RPM) || 3;
+const MIN_INTERVAL_MS = Math.ceil(60000 / AUDIO_RPM) + 1000;   // 3 RPM → una solicitud cada 21 s
+const CONCURRENCY    = 2;               // el espaciado manda; 2 permite solapar generaciones largas
+const REQUEST_TIMEOUT_MS = 5 * 60 * 1000;
+const CHARS_PER_SECOND = 15;            // supuesto de ritmo de lectura (900 por minuto), solo para alertas
+const BUDGET_MS      = parseInt(process.env.AUDIO_BUDGET_MS, 10) || 12 * 60 * 1000; // al plazo se abortan también las llamadas en curso
 const MP3_BITRATE    = '40k';          // voz mono: 18 MB por hora
 const MP3_FALLBACK_BITRATE = '32k';    // re-codificación si el MP3 excede el tope
 // Gmail limita el mensaje CODIFICADO a 25 MB y base64 infla 4/3: 25 × 3/4 = 18,75 MB.
 // Tope del MP3 con margen: 18 MB (18.000.000 bytes).
 const MAX_MP3_BYTES  = parseInt(process.env.AUDIO_MAX_MP3_BYTES, 10) || 18 * 1000 * 1000;
-const PAUSE_SECONDS  = 0.7;            // silencio entre noticias
+const PAUSE_SECONDS  = 1.2;            // silencio entre secciones (y tras el índice)
+const M4A_BITRATE    = '40k';          // AAC mono para voz: 18 MB por hora (medido: 51,6 min a 48k = 19,2 MB)
+const ENGINE         = (process.env.AUDIO_ENGINE || 'auto').toLowerCase();
+const PIPER_PYTHON   = process.env.PIPER_PYTHON || 'python3';
+const PIPER_VOICE    = process.env.PIPER_VOICE || path.join(__dirname, '..', 'voz', 'es_MX-claude-high.onnx');
+const PIPER_TIMEOUT_MS = 8 * 60 * 1000; // por sección
+const PIPER_CONCURRENCY = Math.max(1, Math.min(2, os.cpus().length));
 
 // ─── Construcción del guion ────────────────────────────────────────────────
 
@@ -78,42 +100,111 @@ function parseReport(text) {
 }
 
 /**
- * Arma la lista ordenada de textos a locutar (cada uno será un fragmento de audio).
+ * Mapa número de noticia → temática, leído del ÍNDICE ("N. Título — Temática — Semáforo: X").
+ * Si una línea no trae temática, se usa el último subtítulo de sección visto ("Política").
+ * @returns {{theme: Map<string,string>, order: string[]}}
  */
-function buildScript(text, dateLabel) {
-  const { alerts, items } = parseReport(text);
-  const alto  = items.filter((i) => i.level === 'Alto');
-  const medio = items.filter((i) => i.level === 'Medio');
-  const parts = [];
-
-  parts.push(`Resumen de noticias del ${dateLabel}. Incluye ${alerts.length} alertas del día, ` +
-    `${alto.length} noticias de prioridad alta y ${medio.length} de prioridad media.`);
-  if (alerts.length) {
-    parts.push('Alertas del día.');
-    alerts.forEach((a, k) => parts.push(`Alerta ${k + 1}. ${a}`));
-  }
-  if (alto.length) {
-    parts.push('Noticias de prioridad alta.');
-    alto.forEach((i) => parts.push(`Noticia ${i.n}. ${i.title}. ${i.body}`));
-  }
-  if (medio.length) {
-    parts.push('Noticias de prioridad media.');
-    medio.forEach((i) => parts.push(`Noticia ${i.n}. ${i.title}. ${i.body}`));
-  }
-  parts.push('Fin del resumen.');
-
-  // Divide fragmentos largos por oraciones para no exceder MAX_CHUNK_CHARS
-  const out = [];
-  for (const p of parts) {
-    if (p.length <= MAX_CHUNK_CHARS) { out.push(p); continue; }
-    let cur = '';
-    for (const s of p.split(/(?<=[\.\!\?])\s+/)) {
-      if ((cur + ' ' + s).length > MAX_CHUNK_CHARS && cur) { out.push(cur); cur = s; }
-      else cur = cur ? `${cur} ${s}` : s;
+function themeMap(text) {
+  const t = text.replace(/\r/g, '');
+  const iBody = t.toUpperCase().search(/^[*\s#]*CUERPO[*\s]*$/m);
+  const idx = iBody > 0 ? t.slice(0, iBody) : '';
+  const theme = new Map();
+  const order = [];
+  let header = null;
+  for (const raw of idx.split('\n')) {
+    const line = clean(raw);
+    if (!line) continue;
+    const m = line.match(/^(\d+)[\.\)]\s+(.*)$/);
+    if (!m) {
+      if (!/^(ÍNDICE|INDICE|INFORME|FECHA)/i.test(line) && line.length < 40 && !/[.:]$/.test(line)) header = line;
+      continue;
     }
-    if (cur) out.push(cur);
+    const segs = m[2].split(/\s+[—–-]\s+/);
+    let th = null;
+    const iSem = segs.findIndex((x) => /^Semáforo:/i.test(x));
+    if (iSem >= 2) th = segs[iSem - 1];
+    th = (th || header || 'Otras noticias').trim();
+    theme.set(m[1], th);
+    if (!order.includes(th)) order.push(th);
   }
-  return { chunks: out, counts: { alerts: alerts.length, alto: alto.length, medio: medio.length } };
+  return { theme, order };
+}
+
+/**
+ * Secciones para el audio: "Alertas del día" + una por temática con sus noticias
+ * Alto y Medio (Alto primero). Textos ya normalizados para voz.
+ * @returns {{saludo: string, secciones: {titulo: string, texto: string}[], counts: object}}
+ */
+function buildSections(text, dateLabel) {
+  const { alerts, items } = parseReport(text);
+  const { theme, order } = themeMap(text);
+  const keep = items.filter((i) => i.level === 'Alto' || i.level === 'Medio');
+  const counts = {
+    alerts: alerts.length,
+    alto: keep.filter((i) => i.level === 'Alto').length,
+    medio: keep.filter((i) => i.level === 'Medio').length,
+  };
+  const secciones = [];
+  if (alerts.length) {
+    secciones.push({
+      titulo: 'Alertas del día',
+      texto: ['Alertas del día.', ...alerts.map((a, k) => `Alerta ${k + 1}. ${a}`)].join('\n\n'),
+    });
+  }
+  const themes = [...order];
+  for (const i of keep) { const th = theme.get(i.n) || 'Otras noticias'; if (!themes.includes(th)) themes.push(th); }
+  for (const th of themes) {
+    const news = keep.filter((i) => (theme.get(i.n) || 'Otras noticias') === th)
+      .sort((x, y) => (x.level === y.level ? +x.n - +y.n : (x.level === 'Alto' ? -1 : 1)));
+    if (!news.length) continue;
+    const titulo = th.replace(/\s*&\s*/g, ' y ');
+    secciones.push({
+      titulo,
+      texto: [`${titulo}.`, ...news.map((i) => `Noticia ${i.n}. ${i.title}. ${i.body}`)].join('\n\n'),
+    });
+  }
+  const saludo = `Resumen de noticias del ${dateLabel}. Incluye ${counts.alerts} alertas del día, `
+    + `${counts.alto} noticias de prioridad alta y ${counts.medio} de prioridad media, en ${secciones.length} secciones.`;
+  return {
+    saludo: normalizeForSpeech(saludo),
+    secciones: secciones.map((x) => ({ titulo: x.titulo, texto: normalizeForSpeech(x.texto) })),
+    counts,
+  };
+}
+
+/** Divide un texto largo en piezas de hasta `max` caracteres, por párrafos y oraciones. */
+function splitText(text, max = MAX_CHUNK_CHARS) {
+  const pieces = [];
+  for (const para of text.split(/\n{2,}/)) {
+    if (para.length <= max) { pieces.push(para); continue; }
+    let cur = '';
+    for (const sent of para.split(/(?<=[\.\!\?])\s+/)) {
+      if (cur && (cur.length + 1 + sent.length) > max) { pieces.push(cur); cur = sent; }
+      else cur = cur ? `${cur} ${sent}` : sent;
+    }
+    if (cur) pieces.push(cur);
+  }
+  const out = [];
+  let cur = '';
+  for (const p of pieces) {
+    if (cur && (cur.length + 2 + p.length) > max) { out.push(cur); cur = ''; }
+    cur = cur ? `${cur}\n\n${p}` : p;
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+
+/** "minuto 3 con 20" / "segundo 45" (luego se normaliza a palabras). */
+function marcaHablada(seg) {
+  const total = Math.round(seg);
+  const m = Math.floor(total / 60), s2 = total % 60;
+  return m ? `minuto ${m} con ${s2}` : `segundo ${s2}`;
+}
+
+/** "m:ss" para mostrar en el correo. */
+function mmss(seg) {
+  const total = Math.round(seg);
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
 }
 
 // ─── Audio ─────────────────────────────────────────────────────────────────
@@ -164,7 +255,7 @@ async function ttsOnce(model, text, signal) {
       response_format: { type: 'audio' },
       generation_config: { speech_config: [{ voice: VOICE }] },
     }),
-    signal: AbortSignal.any([signal, AbortSignal.timeout(120 * 1000)]),
+    signal: AbortSignal.any([signal, AbortSignal.timeout(REQUEST_TIMEOUT_MS)]),
   });
   if (!res.ok) {
     const detail = (await res.text()).slice(0, 300);
@@ -191,21 +282,62 @@ function sleep(ms, signal) {
  * ante 429/503 se reintenta el mismo. Si todos los preferidos quedan descartados, se
  * descubre un reemplazo vía /v1beta/models (una sola vez por corrida, compartido).
  */
+/**
+ * Espera el próximo turno libre según AUDIO_RPM (compartido entre trabajadores).
+ * Garantiza que dos solicitudes nunca empiecen con menos de MIN_INTERVAL_MS de diferencia.
+ */
+async function waitForSlot(state, signal) {
+  const now = Date.now();
+  const start = Math.max(now, state.nextSlot);
+  state.nextSlot = start + MIN_INTERVAL_MS;
+  if (start > now) await sleep(start - now, signal);
+}
+
+/** Segundos que la API pide esperar ("Please retry in 4s"), o null. */
+function retryAfterSeconds(err) {
+  const m = String(err && err.message || '').match(/retry in\s*([\d.]+)\s*s/i);
+  return m ? parseFloat(m[1]) : null;
+}
+
 async function ttsChunk(text, state, signal) {
   let lastErr;
   for (let idx = 0; idx < state.models.length; idx++) {
     const model = state.models[idx];
     if (state.unavailable.has(model)) continue;
-    for (let attempt = 1; attempt <= 3; attempt++) {
+    for (let attempt = 1; attempt <= 6; attempt++) {
       if (signal.aborted) throw new Error('presupuesto de tiempo agotado');
       try {
-        return await ttsOnce(model, text, signal);
+        await waitForSlot(state, signal);
+        const pcm = await ttsOnce(model, text, signal);
+        state.usedModels.add(model);
+        return pcm;
       } catch (err) {
         if (signal.aborted) throw new Error('presupuesto de tiempo agotado');
         lastErr = err;
+        // Cuota DIARIA agotada (plan gratuito: 10 solicitudes por día por modelo, medido el
+        // 23-10-2026): no se reintenta hoy con este modelo; se pasa al siguiente, que tiene
+        // su propia cuota. Si se agotan todos, el error corta y queda el audio parcial.
+        if (err.status === 429 && /per day|daily|RPD/i.test(err.message)) {
+          if (!state.unavailable.has(model)) {
+            log('WARN', `Cuota diaria de voz agotada en ${model}; se pasa al siguiente modelo.`);
+            state.unavailable.add(model);
+            state.quotaExhausted.add(model);
+          }
+          lastErr = new Error(`cuota diaria de voz agotada (${[...state.quotaExhausted].join(', ')}): ${err.message.slice(0, 160)}`);
+          break;
+        }
+        // Límite por minuto: espera lo que pide la API (o un intervalo) y reintenta el mismo modelo.
+        if (err.status === 429) {
+          const wait = ((retryAfterSeconds(err) || MIN_INTERVAL_MS / 1000) + 1) * 1000;
+          log('WARN', `Voz ${model}: límite por minuto, espero ${(wait / 1000).toFixed(0)} s (intento ${attempt}/6).`);
+          state.nextSlot = Math.max(state.nextSlot, Date.now() + wait);
+          continue;
+        }
         if (isUnavailable(err)) {
+          log('WARN', `Modelo de voz ${model} no disponible: ${err.message.slice(0, 160)}. Se descarta.`);
           state.unavailable.add(model);
-          if (state.models.every((m) => state.unavailable.has(m)) && !state.discovery) {
+          if (state.models.every((m) => state.unavailable.has(m)) && !state.discovery
+              && !state.models.every((m) => state.quotaExhausted.has(m))) {
             state.discovery = discoverModel('tts', [...state.unavailable]).then((alt) => {
               if (alt) { state.models.push(alt); recordChange('voz', alt, TTS_MODELS); }
               return alt;
@@ -214,24 +346,146 @@ async function ttsChunk(text, state, signal) {
           if (state.discovery) await state.discovery;
           break; // siguiente modelo de la lista (incluido el descubierto)
         }
-        if (attempt < 3) await sleep(5000 * attempt, signal); // 429/503: espera creciente, mismo modelo
+        if (attempt < 3) { await sleep(5000 * attempt, signal); continue; } // 503 u otro: espera creciente
+        break; // tras 3 errores no transitorios, siguiente modelo
       }
     }
   }
   throw lastErr || new Error('sin modelos de voz disponibles');
 }
 
-/** Codifica PCM a MP3 con ffmpeg. */
-function encodeMp3(pcmPath, mp3Path, bitrate) {
-  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-f', 's16le', '-ar', String(SAMPLE_RATE), '-ac', '1',
-    '-i', pcmPath, '-codec:a', 'libmp3lame', '-b:a', bitrate, mp3Path]);
-  return fs.statSync(mp3Path).size;
+/**
+ * Ruta de ffmpeg: el binario estático que trae la dependencia npm @ffmpeg-installer/ffmpeg
+ * (no depende de apt, que el 23-10-2026 se quedó colgado más de 9 minutos en GitHub
+ * Actions); si no está, se usa el ffmpeg del sistema.
+ */
+function ffmpegPath() {
+  try { return require('@ffmpeg-installer/ffmpeg').path; } catch (_) { return 'ffmpeg'; }
+}
+
+// ─── Motor Piper (local) ────────────────────────────────────────────────────
+
+let piperChecked = null;
+/** ¿Piper y la voz están disponibles? (se verifica una vez por corrida) */
+function piperAvailable() {
+  if (piperChecked !== null) return piperChecked;
+  const voiceOk = fs.existsSync(PIPER_VOICE) && fs.existsSync(`${PIPER_VOICE}.json`);
+  const r = spawnSync(PIPER_PYTHON, ['-c', 'import piper'], { stdio: 'ignore', timeout: 30000 });
+  piperChecked = voiceOk && r.status === 0;
+  if (!piperChecked) log('WARN', `Piper no disponible (voz ${voiceOk ? 'ok' : 'no encontrada en ' + PIPER_VOICE}, módulo ${r.status === 0 ? 'ok' : 'no instalado'}).`);
+  return piperChecked;
+}
+
+function piperSampleRate() {
+  try { return JSON.parse(fs.readFileSync(`${PIPER_VOICE}.json`, 'utf-8')).audio.sample_rate || 22050; }
+  catch (_) { return 22050; }
+}
+
+/** Texto → PCM s16le mono con Piper (--output-raw). */
+function piperSynth(text, signal) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(PIPER_PYTHON, ['-m', 'piper', '-m', PIPER_VOICE, '--output-raw', '--sentence-silence', '0.35'],
+      { stdio: ['pipe', 'pipe', 'pipe'] });
+    const out = []; let err = '';
+    const timer = setTimeout(() => { proc.kill('SIGKILL'); reject(new Error('Piper excedió el tiempo por sección')); }, PIPER_TIMEOUT_MS);
+    const onAbort = () => { proc.kill('SIGKILL'); reject(new Error('presupuesto de tiempo agotado')); };
+    if (signal) signal.addEventListener('abort', onAbort, { once: true });
+    proc.stdout.on('data', (d) => out.push(d));
+    proc.stderr.on('data', (d) => { err += d; });
+    proc.on('error', (e) => { clearTimeout(timer); reject(e); });
+    proc.on('close', (code) => {
+      clearTimeout(timer);
+      if (signal) signal.removeEventListener('abort', onAbort);
+      const pcm = Buffer.concat(out);
+      if (code !== 0 || !pcm.length) return reject(new Error(`Piper terminó con código ${code}: ${err.slice(-200)}`));
+      resolve(pcm.length % 2 ? pcm.subarray(0, pcm.length - 1) : pcm);
+    });
+    proc.stdin.end(text, 'utf-8');
+  });
+}
+
+/** Ejecuta tareas con concurrencia limitada, conservando el orden. */
+async function pool(tasks, n) {
+  const results = new Array(tasks.length);
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(n, tasks.length) }, async () => {
+    while (next < tasks.length) { const k = next++; results[k] = await tasks[k](); }
+  }));
+  return results;
+}
+
+// ─── Motores: interfaz común ────────────────────────────────────────────────
+
+/**
+ * Sintetiza todas las secciones. Devuelve PCM por sección (las que se lograron, en
+ * orden y contiguas desde el inicio) y la función para sintetizar el índice.
+ */
+async function synthPiperAll(secciones, signal) {
+  const pcms = await pool(secciones.map((sec) => () => piperSynth(sec.texto, signal)), PIPER_CONCURRENCY);
+  return { sampleRate: piperSampleRate(), pcms, failure: null, synthOne: (t) => piperSynth(t, signal), engine: 'Piper (es_MX-claude-high)', maxIndexIters: 5 };
+}
+
+async function synthGeminiAll(secciones, signal) {
+  const state = { models: [...TTS_MODELS], unavailable: new Set(), quotaExhausted: new Set(), discovery: null, nextSlot: 0, usedModels: new Set() };
+  // Piezas de todas las secciones, en orden, con espaciado según la cuota por minuto
+  const pieces = [];
+  secciones.forEach((sec, si) => splitText(sec.texto).forEach((txt) => pieces.push({ si, txt })));
+  const results = new Array(pieces.length);
+  let next = 0; let failure = null;
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, pieces.length) }, async () => {
+    while (!failure && next < pieces.length) {
+      const k = next++;
+      try { results[k] = await ttsChunk(pieces[k].txt, state, signal); }
+      catch (err) { failure = failure || err; }
+    }
+  }));
+  // Solo secciones completas y contiguas desde el inicio
+  const pcms = [];
+  for (let si = 0; si < secciones.length; si++) {
+    const own = pieces.map((p, k) => ({ p, k })).filter((x) => x.p.si === si);
+    if (!own.every((x) => results[x.k])) break;
+    pcms.push(Buffer.concat(own.map((x) => results[x.k])));
+  }
+  if (state.usedModels.size) log('INFO', `Modelo(s) de voz usados: ${[...state.usedModels].join(', ')}.`);
+  return {
+    sampleRate: SAMPLE_RATE, pcms, failure: pcms.length < secciones.length ? (failure || new Error('secciones incompletas')) : null,
+    synthOne: (t) => ttsChunk(t, state, signal), engine: 'Gemini TTS', maxIndexIters: 2,
+  };
+}
+
+// ─── Salida: índice hablado, capítulos y codificación ───────────────────────
+
+/** Escapa texto para el formato FFMETADATA1. */
+function metaEscape(v) { return String(v).replace(/([=;#\\\n])/g, '\\$1'); }
+
+/**
+ * Codifica PCM a un formato con capítulos. Si el archivo supera el tope, re-codifica
+ * SOLO ese formato a 32 kbps. Devuelve { path, bytes, bitrate }.
+ */
+function encodeFormat(pcmPath, sampleRate, metaPath, dir, ext) {
+  const ff = ffmpegPath();
+  const input = ['-y', '-loglevel', 'error', '-f', 's16le', '-ar', String(sampleRate), '-ac', '1', '-i', pcmPath,
+    '-i', metaPath, '-map', '0:a', '-map_metadata', '1', '-map_chapters', '1'];
+  const codec = (br) => (ext === 'mp3'
+    ? ['-c:a', 'libmp3lame', '-b:a', br, '-id3v2_version', '3']
+    : ['-c:a', 'aac', '-b:a', br, '-movflags', '+faststart']);
+  const out = path.join(dir, `resumen.${ext}`);
+  let bitrate = ext === 'mp3' ? MP3_BITRATE : M4A_BITRATE;
+  execFileSync(ff, [...input, ...codec(bitrate), out]);
+  let bytes = fs.statSync(out).size;
+  if (bytes > MAX_MP3_BYTES) {
+    log('WARN', `${ext.toUpperCase()} de ${(bytes / 1e6).toFixed(1)} MB supera el tope de ${(MAX_MP3_BYTES / 1e6).toFixed(1)} MB; re-codificando a ${MP3_FALLBACK_BITRATE}.`);
+    bitrate = MP3_FALLBACK_BITRATE;
+    execFileSync(ff, [...input, ...codec(bitrate), out]);
+    bytes = fs.statSync(out).size;
+  }
+  return { path: out, bytes, bitrate };
 }
 
 /**
- * Genera el MP3. Nunca lanza: devuelve { ok, path?, minutes?, reason? }.
- * @param {string} reportText - Informe escrito
- * @param {string} dateLabel  - Fecha legible para la introducción (ej: "jueves 22 de octubre de 2026")
+ * Genera el audio con índice hablado y capítulos. Nunca lanza.
+ * @returns {Promise<{ok:boolean, reason?:string, partial?:boolean, coverage?:string, minutes?:number,
+ *   files?:{path:string, filename:string, contentType:string, bytes:number}[], chapters?:{titulo:string, inicio:string}[], engine?:string}>}
  */
 async function generateAudio(reportText, dateLabel) {
   if (String(process.env.AUDIO_ENABLED || 'true').toLowerCase() === 'false') {
@@ -240,60 +494,100 @@ async function generateAudio(reportText, dateLabel) {
   const started = Date.now();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), BUDGET_MS);
-  const state = { models: [...TTS_MODELS], unavailable: new Set(), discovery: null };
   try {
-    const { chunks, counts } = buildScript(reportText, dateLabel);
-    const chars = chunks.reduce((a, c) => a + c.length, 0);
-    log('INFO', `Audio: ${counts.alerts} alertas, ${counts.alto} Alto, ${counts.medio} Medio; ${chunks.length} fragmentos, ${chars} caracteres.`);
-    if (counts.alto + counts.medio + counts.alerts === 0) {
-      return { ok: false, reason: 'no se encontraron alertas ni noticias Alto o Medio en el informe' };
-    }
+    const { saludo, secciones, counts } = buildSections(reportText, dateLabel);
+    const chars = secciones.reduce((a, x) => a + x.texto.length, 0);
+    log('INFO', `Audio: ${counts.alerts} alertas, ${counts.alto} Alto, ${counts.medio} Medio; ${secciones.length} secciones, ${chars} caracteres.`);
+    if (!secciones.length) return { ok: false, reason: 'no se encontraron alertas ni noticias Alto o Medio en el informe' };
 
-    const results = new Array(chunks.length);
-    let next = 0;
-    let failed = false; // si un fragmento falla, los demás trabajadores se detienen
-    const worker = async () => {
-      while (!failed && next < chunks.length) {
-        const k = next++;
-        try {
-          results[k] = await ttsChunk(chunks[k], state, controller.signal);
-        } catch (err) {
-          failed = true;
-          throw err;
-        }
+    // 1) Secciones: Piper si está disponible; si falla, Gemini
+    let r = null;
+    const wantPiper = ENGINE === 'piper' || (ENGINE === 'auto' && piperAvailable());
+    if (wantPiper) {
+      try { r = await synthPiperAll(secciones, controller.signal); }
+      catch (err) {
+        if (controller.signal.aborted) throw err;
+        log('WARN', `Piper falló (${err.message.slice(0, 160)}); se usa Gemini TTS.`);
       }
-    };
-    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, chunks.length) }, worker));
+    }
+    if (!r) r = await synthGeminiAll(secciones, controller.signal);
+    if (!r.pcms.length) throw r.failure || new Error('sin audio');
+    const incl = secciones.slice(0, r.pcms.length);
+    const durs = r.pcms.map((b) => b.length / 2 / r.sampleRate);
+    log('INFO', `Motor de voz: ${r.engine}. Secciones: ${incl.map((x, k) => `${x.titulo} ${mmss(durs[k])}`).join(', ')}.`);
+
+    // 2) Índice hablado: los minutos dependen del largo del propio índice → se itera
+    let indicePcm = null; let largo = 20; let prevText = null;
+    for (let it = 0; it < r.maxIndexIters; it++) {
+      const inicios = []; let t = largo + PAUSE_SECONDS;
+      for (const d of durs) { inicios.push(t); t += d + PAUSE_SECONDS; }
+      const texto = normalizeForSpeech(`${saludo}\n\nÍndice. `
+        + incl.map((x, k) => `${x.titulo}, ${marcaHablada(inicios[k])}.`).join(' '));
+      if (texto === prevText && indicePcm) break;
+      try {
+        indicePcm = await r.synthOne(texto);
+      } catch (err) {
+        if (controller.signal.aborted) throw err;
+        // Sin cuota o error en el índice: se conserva el índice anterior si lo hay; si no,
+        // el audio sale sin índice hablado (los capítulos se mantienen).
+        log('WARN', `Índice hablado no generado (${err.message.slice(0, 120)}); ${indicePcm ? 'se usa la versión anterior' : 'el audio sale sin índice hablado'}.`);
+        if (!r.failure && !indicePcm) r.failure = new Error(`índice hablado no generado: ${err.message.slice(0, 120)}`);
+        break;
+      }
+      prevText = texto;
+      const nuevo = indicePcm.length / 2 / r.sampleRate;
+      if (Math.abs(nuevo - largo) < 0.5) { largo = nuevo; break; }
+      largo = nuevo;
+    }
     clearTimeout(timer);
 
-    const silence = Buffer.alloc(Math.round(SAMPLE_RATE * PAUSE_SECONDS) * 2);
-    const pcm = Buffer.concat(results.flatMap((b) => [b, silence]));
-    const minutes = pcm.length / 2 / SAMPLE_RATE / 60;
+    // 3) Concatenar índice + secciones con pausas; capítulos con las duraciones REALES
+    const pause = Buffer.alloc(Math.round(r.sampleRate * PAUSE_SECONDS) * 2);
+    const parts = indicePcm ? [indicePcm, pause] : [];
+    const chapters = indicePcm ? [{ titulo: 'Índice', start: 0 }] : [];
+    let pos = indicePcm ? (indicePcm.length + pause.length) / 2 / r.sampleRate : 0;
+    incl.forEach((x, k) => { chapters.push({ titulo: x.titulo, start: pos }); parts.push(r.pcms[k], pause); pos += durs[k] + PAUSE_SECONDS; });
+    const pcm = Buffer.concat(parts);
+    const total = pcm.length / 2 / r.sampleRate;
 
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'audio-'));
     const pcmPath = path.join(dir, 'resumen.pcm');
-    const mp3Path = path.join(dir, 'resumen.mp3');
     fs.writeFileSync(pcmPath, pcm);
-    let bytes = encodeMp3(pcmPath, mp3Path, MP3_BITRATE);
-    let bitrate = MP3_BITRATE;
-    if (bytes > MAX_MP3_BYTES) {
-      log('WARN', `MP3 de ${(bytes / 1e6).toFixed(1)} MB supera el tope de ${(MAX_MP3_BYTES / 1e6).toFixed(1)} MB; re-codificando a ${MP3_FALLBACK_BITRATE}.`);
-      bytes = encodeMp3(pcmPath, mp3Path, MP3_FALLBACK_BITRATE);
-      bitrate = MP3_FALLBACK_BITRATE;
-    }
+    let meta = `;FFMETADATA1\ntitle=${metaEscape(`Resumen de Noticias ${dateLabel}`)}\nartist=Resumen Noticias\n`;
+    chapters.forEach((c, i) => {
+      const end = i + 1 < chapters.length ? chapters[i + 1].start : total;
+      meta += `[CHAPTER]\nTIMEBASE=1/1000\nSTART=${Math.round(c.start * 1000)}\nEND=${Math.round(end * 1000)}\ntitle=${metaEscape(c.titulo)}\n`;
+    });
+    const metaPath = path.join(dir, 'meta.txt');
+    fs.writeFileSync(metaPath, meta, 'utf-8');
+
+    const mp3 = encodeFormat(pcmPath, r.sampleRate, metaPath, dir, 'mp3');
+    const m4a = encodeFormat(pcmPath, r.sampleRate, metaPath, dir, 'm4a');
+    const files = [];
+    if (mp3.bytes <= MAX_MP3_BYTES) files.push({ path: mp3.path, ext: 'mp3', contentType: 'audio/mpeg', bytes: mp3.bytes });
+    if (m4a.bytes <= MAX_MP3_BYTES) files.push({ path: m4a.path, ext: 'm4a', contentType: 'audio/mp4', bytes: m4a.bytes });
     const secs = ((Date.now() - started) / 1000).toFixed(0);
-    log('INFO', `Audio generado: ${minutes.toFixed(1)} min, ${(bytes / 1e6).toFixed(1)} MB a ${bitrate}, en ${secs} s.`);
-    if (bytes > MAX_MP3_BYTES) {
-      return { ok: false, reason: `MP3 de ${(bytes / 1e6).toFixed(1)} MB excede el tope de ${(MAX_MP3_BYTES / 1e6).toFixed(1)} MB (límite de 25 MB de Gmail con codificación base64)` };
+    log('INFO', `Audio generado: ${(total / 60).toFixed(1)} min, ${chapters.length} capítulos, MP3 ${(mp3.bytes / 1e6).toFixed(1)} MB a ${mp3.bitrate}, M4A ${(m4a.bytes / 1e6).toFixed(1)} MB a ${m4a.bitrate}, en ${secs} s.`);
+    if (!files.length) return { ok: false, reason: 'los archivos de audio exceden el tope de 18 MB (límite de 25 MB de Gmail con codificación base64)' };
+
+    const out = {
+      ok: true, minutes: total / 60, files, engine: r.engine,
+      chapters: chapters.map((c) => ({ titulo: c.titulo, inicio: mmss(c.start) })),
+    };
+    if (r.failure) {
+      out.partial = true;
+      out.coverage = `incluye ${incl.length} de ${secciones.length} secciones (hasta ${incl[incl.length - 1].titulo})${indicePcm ? '' : ', sin índice hablado'}`;
+      out.reason = r.failure.message.slice(0, 200);
+      log('WARN', `Audio parcial: ${out.coverage}. Motivo: ${out.reason}`);
     }
-    return { ok: true, path: mp3Path, minutes };
+    return out;
   } catch (err) {
     log('WARN', `Audio no generado tras ${((Date.now() - started) / 1000).toFixed(0)} s: ${err.message}`);
     return { ok: false, reason: err.message.slice(0, 200) };
   } finally {
     clearTimeout(timer);
-    controller.abort(); // detiene cualquier llamada que siga en curso
+    controller.abort(); // detiene cualquier proceso o llamada que siga en curso
   }
 }
 
-module.exports = { generateAudio, buildScript, parseReport, toPcm, findAudioData, MAX_MP3_BYTES };
+module.exports = { generateAudio, buildSections, themeMap, splitText, parseReport, toPcm, findAudioData, marcaHablada, MAX_MP3_BYTES };

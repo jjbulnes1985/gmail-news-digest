@@ -8,3 +8,6 @@ node_modules/
 
 # Logs
 *.log
+
+# Voz Piper descargada en el workflow (caché de GitHub Actions)
+voz/

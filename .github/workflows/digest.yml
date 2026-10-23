@@ -12,6 +12,13 @@ on:
     - cron: '45 12 * * *'   # 9:45 nominal
   workflow_dispatch:         # DISPARADOR PRINCIPAL: tarea programada de Claude a las 8:20 Chile
                              # (vía conexión GitHub en Composio); también manual.
+    inputs:
+      modo:
+        description: 'normal = resumen diario; solo-audio = regenera y envía solo el MP3 del último resumen'
+        required: false
+        default: normal
+        type: choice
+        options: [normal, solo-audio]
 
 # Evita que dos disparos cercanos corran en paralelo. El segundo espera en cola,
 # así el control de idempotencia siempre ve el last_run.json ya actualizado.
@@ -34,10 +41,34 @@ jobs:
           node-version: '24'
 
       - name: Instalar dependencias
-        run: npm install
+        run: npm install   # incluye ffmpeg estático (@ffmpeg-installer/ffmpeg) para el MP3
 
-      - name: Asegurar ffmpeg (audio MP3)
-        run: command -v ffmpeg || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
+      # Voz local Piper (sin cuotas). Si algo de esto falla, el audio usa Gemini TTS.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar Piper
+        run: pip install --quiet piper-tts==1.8.0
+        timeout-minutes: 5
+        continue-on-error: true
+
+      - name: Restaurar voz Piper (caché)
+        uses: actions/cache@v4
+        with:
+          path: voz
+          key: piper-voz-es_MX-claude-high-v1
+
+      - name: Descargar voz Piper (si no está en caché)
+        run: |
+          mkdir -p voz
+          base=https://huggingface.co/rhasspy/piper-voices/resolve/main/es/es_MX/claude/high
+          for f in es_MX-claude-high.onnx es_MX-claude-high.onnx.json; do
+            [ -s "voz/$f" ] || curl -fsSL --retry 3 --max-time 240 -o "voz/$f" "$base/$f"
+          done
+          ls -la voz
+        timeout-minutes: 5
+        continue-on-error: true
 
       - name: Escribir archivo .env
         run: echo "$ENV_FILE" > .env
@@ -59,7 +90,7 @@ jobs:
           OAUTH_TOKEN: ${{ secrets.OAUTH_TOKEN }}
 
       - name: Ejecutar pipeline
-        run: node src/index.js --run-now
+        run: node src/index.js ${{ inputs.modo == 'solo-audio' && '--audio-only' || '--run-now' }}
 
       - name: Guardar last_run.json
         run: |

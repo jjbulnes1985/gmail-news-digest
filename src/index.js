@@ -13,9 +13,9 @@ require('dotenv').config();
 const fs   = require('fs');
 const path = require('path');
 const cron = require('node-cron');
-const { authorize, getEmails } = require('./gmail');
+const { authorize, getEmails, getLatestDigest } = require('./gmail');
 const { summarize }            = require('./summarizer');
-const { sendDigest }           = require('./mailer');
+const { sendDigest, sendAudioOnly } = require('./mailer');
 const { generateAudio }        = require('./audio');
 const { log, saveLastRun, santiagoDate, getLastRunDate } = require('./utils');
 
@@ -26,6 +26,7 @@ const { log, saveLastRun, santiagoDate, getLastRunDate } = require('./utils');
 const args      = process.argv.slice(2);
 const RUN_NOW   = args.includes('--run-now');
 const AUTH_ONLY = args.includes('--auth-only');
+const AUDIO_ONLY = args.includes('--audio-only');
 
 /**
  * Ejecuta el pipeline completo:
@@ -96,7 +97,33 @@ async function runDigest() {
 
 // ─── Selector de modo de ejecución ──────────────────────────────────────────
 
-if (AUTH_ONLY) {
+/**
+ * Modo --audio-only: regenera y envía SOLO el audio del último resumen enviado.
+ * No genera un resumen nuevo, no toca last_run.json y no afecta el envío diario.
+ */
+async function runAudioOnly() {
+  const auth = await authorize();
+  const digest = await getLatestDigest(auth);
+  const [d, m, y] = digest.dateDMY.split('/').map(Number);
+  const dateLabel = new Date(Date.UTC(y, m - 1, d, 15)).toLocaleDateString('es-CL', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Santiago',
+  });
+  const audio = await generateAudio(digest.text, dateLabel);
+  if (!audio.ok) throw new Error(`audio no generado: ${audio.reason}`);
+  await sendAudioOnly(audio, digest.dateDMY);
+  log('INFO', `Audio del ${digest.dateDMY} enviado${audio.partial ? ' (parcial)' : ''}.`);
+}
+
+if (AUDIO_ONLY) {
+  log('INFO', 'Modo: solo audio (--audio-only).');
+  runAudioOnly()
+    .then(() => process.exit(0))
+    .catch((err) => {
+      log('ERROR', `Error en modo solo audio: ${err.message}`);
+      process.exit(1);
+    });
+
+} else if (AUTH_ONLY) {
   // Modo: solo autorización OAuth2 (primera configuración)
   log('INFO', 'Modo: autorización OAuth2 únicamente.');
   authorize()

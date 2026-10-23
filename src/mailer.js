@@ -22,6 +22,8 @@ function convertToHtml(text) {
   let html = '';
   let section = '';          // 'indice' | 'cuerpo' | 'alertas' | ''
   let hasBodyAnchors = false;
+  let currentNews = null;     // número de la noticia del cuerpo que se está escribiendo
+  const indexNums = new Set(); // números que tienen titular en el índice
 
   // Colorea el semáforo
   const badgeSemaforo = (linea) => linea
@@ -61,12 +63,15 @@ function convertToHtml(text) {
     if (m) {
       const n = m[1];
       if (section === 'indice') {
-        // Título del índice enlazado a su desarrollo en el cuerpo
-        html += `<p class="idx"><a href="#noticia-${n}">${inline(line)}</a></p>\n`;
+        // Título del índice enlazado a su desarrollo en el cuerpo; lleva su propia ancla
+        // ("idx-N") para que el desarrollo pueda volver exactamente a este titular
+        indexNums.add(n);
+        html += `<p class="idx"><a name="idx-${n}" id="idx-${n}"></a><a href="#noticia-${n}">${inline(line)}</a></p>\n`;
         continue;
       }
       if (section === 'cuerpo') {
         hasBodyAnchors = true;
+        currentNews = n;
         html += `<p class="titular"><a name="noticia-${n}" id="noticia-${n}"></a>${inline(line)}</p>\n`;
         continue;
       }
@@ -74,11 +79,14 @@ function convertToHtml(text) {
       continue;
     }
 
-    // Fuente: cierra el bloque de la noticia con un link de vuelta al índice
+    // Fuente: cierra el bloque de la noticia con un link de vuelta a SU titular en el
+    // índice (no al comienzo), para seguir leyendo desde donde se iba. Si ese titular
+    // no está en el índice, el link vuelve al comienzo del índice.
     if (/^\(Fuente:/i.test(p)) {
       html += `<p class="fuente">${escapeHtml(p)}`;
       if (section === 'cuerpo' && hasBodyAnchors) {
-        html += ` · <a class="volver" href="#indice">Volver al índice</a>`;
+        const target = currentNews && indexNums.has(currentNews) ? `idx-${currentNews}` : 'indice';
+        html += ` · <a class="volver" href="#${target}">Volver al titular</a>`;
       }
       html += '</p>\n';
       continue;
@@ -109,6 +117,31 @@ function escapeHtml(str) {
  * @param {string} summaryText - Texto plano del resumen generado por Claude
  * @returns {Promise<void>}
  */
+const GMAIL_SAFE_BYTES = 18 * 1000 * 1000; // 25 MB codificados ÷ 4/3 (base64), con margen
+
+/** Nombre de archivo del audio: "Resumen-Noticias-23-10-2026.mp3". */
+function audioFilename(dateDMY, ext) { return `Resumen-Noticias-${dateDMY.replace(/\//g, '-')}.${ext}`; }
+
+/**
+ * Reparte los archivos de audio: los que caben junto al correo principal y los que
+ * van en un segundo correo (si MP3 + M4A superan el tope de Gmail).
+ */
+function splitAudioFiles(audio, dateDMY, budget = GMAIL_SAFE_BYTES) {
+  const main = []; const extra = [];
+  let used = 0;
+  for (const f of (audio && audio.ok && audio.files) || []) {
+    const att = { filename: audioFilename(dateDMY, f.ext), path: f.path, contentType: f.contentType };
+    if (used + f.bytes <= budget) { main.push(att); used += f.bytes; } else extra.push(att);
+  }
+  return { main, extra };
+}
+
+/** Línea de capítulos para el cuerpo del correo (Gmail no muestra capítulos al reproducir). */
+function chaptersHtml(audio) {
+  if (!audio || !audio.chapters || !audio.chapters.length) return '';
+  return `<br><span class="capitulos">Capítulos: ${audio.chapters.map((c) => `${escapeHtml(c.titulo)} ${c.inicio}`).join(' · ')}</span>`;
+}
+
 async function sendDigest(summaryText, audio = null) {
   const today = santiagoDateDMY(Date.now()); // fecha de Chile, no la del runner (UTC)
 
@@ -116,8 +149,15 @@ async function sendDigest(summaryText, audio = null) {
   let bodyHtml = convertToHtml(summaryText);
   // Si en esta corrida se cambió de modelo automáticamente, se informa al pie
   const modelChangesHtml = getChanges().map((c) => `<br>${escapeHtml(c)}`).join('');
-  if (audio && audio.ok) {
-    bodyHtml = `<p class="audio-nota">🎧 Resumen en audio adjunto (alertas, noticias Alto y Medio; ${audio.minutes.toFixed(0)} min aprox.).</p>\n` + bodyHtml;
+  const { main: audioMain, extra: audioExtra } = splitAudioFiles(audio, today);
+  const formatos = (atts) => atts.map((a) => a.filename.split('.').pop().toUpperCase()).join(' y ');
+  const dondeAudio = audioExtra.length
+    ? `${formatos(audioMain)} adjunto; ${formatos(audioExtra)} en un segundo correo por el límite de tamaño de Gmail`
+    : `${formatos(audioMain)} adjunto${audioMain.length > 1 ? 's' : ''}`;
+  if (audio && audio.ok && audio.partial) {
+    bodyHtml = `<p class="audio-nota">🎧 Audio PARCIAL con índice y capítulos (${audio.minutes.toFixed(0)} min aprox.; ${dondeAudio}): ${escapeHtml(audio.coverage)}. Motivo: ${escapeHtml(audio.reason)}${chaptersHtml(audio)}</p>\n` + bodyHtml;
+  } else if (audio && audio.ok) {
+    bodyHtml = `<p class="audio-nota">🎧 Resumen en audio con índice y capítulos (alertas, noticias Alto y Medio; ${audio.minutes.toFixed(0)} min aprox.; ${dondeAudio}).${chaptersHtml(audio)}</p>\n` + bodyHtml;
   } else if (audio && audio.reason) {
     bodyHtml = `<p class="audio-nota">Audio no disponible hoy: ${escapeHtml(audio.reason)}</p>\n` + bodyHtml;
   }
@@ -167,6 +207,7 @@ async function sendDigest(summaryText, audio = null) {
     .idx a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #1a4d8f; }
     .titular { margin-top: 18px; font-weight: bold; }
     .volver { font-style: normal; font-size: 11px; }
+    .capitulos { font-size: 12px; color: #444; }
     .audio-nota { font-family: Arial, sans-serif; font-size: 13px; background: #f3f6fa; border-left: 3px solid #1a4d8f; padding: 8px 10px; }
     .fuente {
       font-size: 12px;
@@ -221,6 +262,37 @@ async function sendDigest(summaryText, audio = null) {
 </body>
 </html>`;
 
+  const mailOptions = {
+    from:    `"Resumen Noticias" <${process.env.SMTP_USER}>`,
+    to:      process.env.DIGEST_RECIPIENT,
+    subject: `📰 Resumen Noticias — ${today}`,
+    html:    htmlEmail,
+    text:    summaryText,
+    attachments: audioMain,
+  };
+
+  await deliver(mailOptions);
+  if (audioExtra.length) await sendExtraAudio(audioExtra, today, audio);
+}
+
+/** Segundo correo con el formato de audio que no cupo junto al principal. */
+async function sendExtraAudio(attachments, dateDMY, audio) {
+  const text = `Audio del Resumen Noticias del ${dateDMY} en ${attachments.map((a) => a.filename.split('.').pop().toUpperCase()).join(' y ')} (con índice hablado y capítulos; ${audio.minutes.toFixed(0)} min aprox.).`;
+  await deliver({
+    from:    `"Resumen Noticias" <${process.env.SMTP_USER}>`,
+    to:      process.env.DIGEST_RECIPIENT,
+    subject: `🎧 Audio Resumen Noticias — ${dateDMY} (${attachments.map((a) => a.filename.split('.').pop().toUpperCase()).join(', ')})`,
+    text,
+    html:    `<p style="font-family:Arial,sans-serif;font-size:14px">${escapeHtml(text)}${chaptersHtml(audio)}</p>`,
+    attachments,
+  });
+}
+
+/**
+ * Envía un correo por SMTP con 3 intentos (10 s entre ellos).
+ * @param {object} mailOptions - opciones de nodemailer
+ */
+async function deliver(mailOptions) {
   // Configurar transporte SMTP
   // IMPORTANTE: secure: false + port 587 = STARTTLS (correcto para Gmail)
   //             secure: true  + port 465 = SSL implícito (alternativa)
@@ -251,17 +323,6 @@ async function sendDigest(summaryText, audio = null) {
     socketTimeout:     30000,
   });
 
-  const mailOptions = {
-    from:    `"Resumen Noticias" <${process.env.SMTP_USER}>`,
-    to:      process.env.DIGEST_RECIPIENT,
-    subject: `📰 Resumen Noticias — ${today}`,
-    html:    htmlEmail,
-    text:    summaryText,
-    attachments: (audio && audio.ok)
-      ? [{ filename: `Resumen-Noticias-${today.replace(/\//g, '-')}.mp3`, path: audio.path, contentType: 'audio/mpeg' }]
-      : [],
-  };
-
   // 3 intentos con 10s de espera entre ellos
   const MAX_MAIL_RETRIES = 3;
   let lastMailError;
@@ -281,4 +342,24 @@ async function sendDigest(summaryText, audio = null) {
   throw lastMailError;
 }
 
-module.exports = { sendDigest, convertToHtml };
+/**
+ * Envía SOLO el audio (modo --audio-only), para regenerar el audio de un día en que falló.
+ * Si MP3 + M4A superan el tope de Gmail, van en dos correos.
+ */
+async function sendAudioOnly(audio, dateDMY) {
+  if (!audio || !audio.ok) throw new Error(`no hay audio que enviar: ${audio && audio.reason}`);
+  const { main, extra } = splitAudioFiles(audio, dateDMY);
+  const extraTxt = audio.partial ? ` Audio PARCIAL: ${audio.coverage}. Motivo: ${audio.reason}` : '';
+  const text = `Audio del Resumen Noticias del ${dateDMY} con índice hablado y capítulos (alertas, noticias Alto y Medio; ${audio.minutes.toFixed(0)} min aprox.).${extraTxt}`;
+  await deliver({
+    from:    `"Resumen Noticias" <${process.env.SMTP_USER}>`,
+    to:      process.env.DIGEST_RECIPIENT,
+    subject: `🎧 Audio Resumen Noticias — ${dateDMY}`,
+    text,
+    html:    `<p style="font-family:Arial,sans-serif;font-size:14px">${escapeHtml(text)}${chaptersHtml(audio)}</p>`,
+    attachments: main,
+  });
+  if (extra.length) await sendExtraAudio(extra, dateDMY, audio);
+}
+
+module.exports = { sendDigest, sendAudioOnly, convertToHtml, splitAudioFiles };
