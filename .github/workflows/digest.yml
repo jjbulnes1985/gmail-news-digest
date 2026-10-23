@@ -41,10 +41,7 @@ jobs:
           node-version: '24'
 
       - name: Instalar dependencias
-        run: npm install
-
-      - name: Asegurar ffmpeg (audio MP3)
-        run: command -v ffmpeg || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
+        run: npm install   # incluye ffmpeg estático (@ffmpeg-installer/ffmpeg) para el MP3
 
       - name: Escribir archivo .env
         run: echo "$ENV_FILE" > .env

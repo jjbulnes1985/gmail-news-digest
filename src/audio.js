@@ -279,9 +279,18 @@ async function ttsChunk(text, state, signal) {
   throw lastErr || new Error('sin modelos de voz disponibles');
 }
 
+/**
+ * Ruta de ffmpeg: el binario estático que trae la dependencia npm @ffmpeg-installer/ffmpeg
+ * (no depende de apt, que el 23-10-2026 se quedó colgado más de 9 minutos en GitHub
+ * Actions); si no está, se usa el ffmpeg del sistema.
+ */
+function ffmpegPath() {
+  try { return require('@ffmpeg-installer/ffmpeg').path; } catch (_) { return 'ffmpeg'; }
+}
+
 /** Codifica PCM a MP3 con ffmpeg. */
 function encodeMp3(pcmPath, mp3Path, bitrate) {
-  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-f', 's16le', '-ar', String(SAMPLE_RATE), '-ac', '1',
+  execFileSync(ffmpegPath(), ['-y', '-loglevel', 'error', '-f', 's16le', '-ar', String(SAMPLE_RATE), '-ac', '1',
     '-i', pcmPath, '-codec:a', 'libmp3lame', '-b:a', bitrate, mp3Path]);
   return fs.statSync(mp3Path).size;
 }
