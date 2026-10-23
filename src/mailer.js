@@ -307,14 +307,15 @@ async function deliver(mailOptions) {
 async function sendAudioOnly(audio, dateDMY) {
   if (!audio || !audio.ok) throw new Error(`no hay audio que enviar: ${audio && audio.reason}`);
   const extra = audio.partial ? ` Audio PARCIAL: ${audio.coverage}. Motivo: ${audio.reason}` : '';
-  const text = `Audio del Resumen Noticias del ${dateDMY} (alertas, noticias Alto y Medio; ${audio.minutes.toFixed(0)} min aprox.).${extra}`;
+  const cont = audio.continuationAfter ? ` Continuación: parte después de ${audio.continuationAfter}.` : '';
+  const text = `Audio del Resumen Noticias del ${dateDMY} (alertas, noticias Alto y Medio; ${audio.minutes.toFixed(0)} min aprox.).${cont}${extra}`;
   await deliver({
     from:    `"Resumen Noticias" <${process.env.SMTP_USER}>`,
     to:      process.env.DIGEST_RECIPIENT,
-    subject: `🎧 Audio Resumen Noticias — ${dateDMY}`,
+    subject: `🎧 Audio Resumen Noticias — ${dateDMY}${audio.continuationAfter ? ' (continuación)' : ''}`,
     text,
     html:    `<p style="font-family:Arial,sans-serif;font-size:14px">${escapeHtml(text)}</p>`,
-    attachments: [{ filename: `Resumen-Noticias-${dateDMY.replace(/\//g, '-')}.mp3`, path: audio.path, contentType: 'audio/mpeg' }],
+    attachments: [{ filename: `Resumen-Noticias-${dateDMY.replace(/\//g, '-')}${audio.continuationAfter ? '-continuacion' : ''}.mp3`, path: audio.path, contentType: 'audio/mpeg' }],
   });
 }
 

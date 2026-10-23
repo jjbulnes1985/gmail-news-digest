@@ -19,6 +19,10 @@ on:
         default: normal
         type: choice
         options: [normal, solo-audio]
+      omitir:
+        description: 'solo-audio: fragmentos iniciales a omitir (para generar la continuación de un audio parcial)'
+        required: false
+        default: '0'
 
 # Evita que dos disparos cercanos corran en paralelo. El segundo espera en cola,
 # así el control de idempotencia siempre ve el last_run.json ya actualizado.
@@ -64,6 +68,8 @@ jobs:
 
       - name: Ejecutar pipeline
         run: node src/index.js ${{ inputs.modo == 'solo-audio' && '--audio-only' || '--run-now' }}
+        env:
+          AUDIO_SKIP_CHUNKS: ${{ inputs.modo == 'solo-audio' && inputs.omitir || '0' }}
 
       - name: Guardar last_run.json
         run: |

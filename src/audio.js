@@ -248,9 +248,17 @@ async function ttsChunk(text, state, signal) {
       } catch (err) {
         if (signal.aborted) throw new Error('presupuesto de tiempo agotado');
         lastErr = err;
-        // Cuota DIARIA agotada: no tiene sentido reintentar hoy.
+        // Cuota DIARIA agotada (plan gratuito: 10 solicitudes por día por modelo, medido el
+        // 23-10-2026): no se reintenta hoy con este modelo; se pasa al siguiente, que tiene
+        // su propia cuota. Si se agotan todos, el error corta y queda el audio parcial.
         if (err.status === 429 && /per day|daily|RPD/i.test(err.message)) {
-          throw new Error(`cuota diaria de voz agotada (${model}): ${err.message.slice(0, 160)}`);
+          if (!state.unavailable.has(model)) {
+            log('WARN', `Cuota diaria de voz agotada en ${model}; se pasa al siguiente modelo.`);
+            state.unavailable.add(model);
+            state.quotaExhausted.add(model);
+          }
+          lastErr = new Error(`cuota diaria de voz agotada (${[...state.quotaExhausted].join(', ')}): ${err.message.slice(0, 160)}`);
+          break;
         }
         // Límite por minuto: espera lo que pide la API (o un intervalo) y reintenta el mismo modelo.
         if (err.status === 429) {
@@ -262,7 +270,8 @@ async function ttsChunk(text, state, signal) {
         if (isUnavailable(err)) {
           log('WARN', `Modelo de voz ${model} no disponible: ${err.message.slice(0, 160)}. Se descarta.`);
           state.unavailable.add(model);
-          if (state.models.every((m) => state.unavailable.has(m)) && !state.discovery) {
+          if (state.models.every((m) => state.unavailable.has(m)) && !state.discovery
+              && !state.models.every((m) => state.quotaExhausted.has(m))) {
             state.discovery = discoverModel('tts', [...state.unavailable]).then((alt) => {
               if (alt) { state.models.push(alt); recordChange('voz', alt, TTS_MODELS); }
               return alt;
@@ -307,9 +316,17 @@ async function generateAudio(reportText, dateLabel) {
   const started = Date.now();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), BUDGET_MS);
-  const state = { models: [...TTS_MODELS], unavailable: new Set(), discovery: null, nextSlot: 0, usedModels: new Set() };
+  const state = { models: [...TTS_MODELS], unavailable: new Set(), quotaExhausted: new Set(), discovery: null, nextSlot: 0, usedModels: new Set() };
   try {
-    const { chunks, labels, counts } = buildScript(reportText, dateLabel);
+    const built = buildScript(reportText, dateLabel);
+    const { counts } = built;
+    // Continuación: omite los primeros N fragmentos ya enviados (modo solo-audio, input "omitir")
+    const skip = Math.max(0, parseInt(process.env.AUDIO_SKIP_CHUNKS, 10) || 0);
+    if (skip >= built.chunks.length) return { ok: false, reason: `nada que generar: se pidió omitir ${skip} de ${built.chunks.length} fragmentos` };
+    const chunks = built.chunks.slice(skip);
+    const labels = built.labels.slice(skip);
+    const startLabel = skip ? built.labels[skip - 1] : null;
+    if (skip) log('INFO', `Continuación: se omiten ${skip} fragmentos (ya enviados hasta ${startLabel}).`);
     const chars = chunks.reduce((a, c) => a + c.length, 0);
     log('INFO', `Audio: ${counts.alerts} alertas, ${counts.alto} Alto, ${counts.medio} Medio; ${chunks.length} fragmentos, ${chars} caracteres; ${AUDIO_RPM} solicitudes por minuto.`);
     if (counts.alto + counts.medio + counts.alerts === 0) {
@@ -370,12 +387,12 @@ async function generateAudio(reportText, dateLabel) {
     }
     if (partial) {
       return {
-        ok: true, partial: true, path: mp3Path, minutes,
+        ok: true, partial: true, path: mp3Path, minutes, ...(skip ? { continuationAfter: startLabel } : {}),
         coverage: `incluye hasta ${labels[usable - 1]} (${usable} de ${results.length} fragmentos)`,
         reason: (failure ? failure.message : 'fragmentos faltantes').slice(0, 200),
       };
     }
-    return { ok: true, path: mp3Path, minutes };
+    return { ok: true, path: mp3Path, minutes, ...(skip ? { continuationAfter: startLabel } : {}) };
   } catch (err) {
     log('WARN', `Audio no generado tras ${((Date.now() - started) / 1000).toFixed(0)} s: ${err.message}`);
     return { ok: false, reason: err.message.slice(0, 200) };
