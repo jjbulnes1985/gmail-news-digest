@@ -91,10 +91,12 @@ function parseReport(text) {
     items.push({ n: m[1], level: m[3][0].toUpperCase() + m[3].slice(1).toLowerCase(), title: m[2], body: clean(bodyLines.join(' ')) });
   }
 
+  // Alertas numeradas ("1.") o con viñeta ("-", "•"): el 25-10-2026 llegaron con guion
   const alerts = alertsBlock.split('\n').slice(1)
     .map((l) => clean(l))
-    .filter((l) => /^\d+[\.\)]\s/.test(l))
-    .map((l) => l.replace(/^\d+[\.\)]\s*/, ''));
+    .filter((l) => /^(\d+[\.\)]|[-•–])\s/.test(l))
+    .map((l) => l.replace(/^(\d+[\.\)]|[-•–])\s*/, ''))
+    .filter(Boolean);
 
   return { alerts, items };
 }

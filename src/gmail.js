@@ -10,6 +10,7 @@ const { google } = require('googleapis');
 let pdfParse;
 try { pdfParse = require('pdf-parse'); } catch (_) { pdfParse = null; }
 const { stripHtml, log, getLastRunEpoch } = require('./utils');
+const { extractLinks, normalizeNumbering } = require('./report');
 
 // Permisos de solo lectura (principio de mínimo privilegio)
 const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
@@ -188,6 +189,23 @@ function parseBody(payload) {
 }
 
 /**
+ * Devuelve la primera parte text/html del payload (recursivo), o '' si no hay.
+ * Se usa para leer los enlaces de las noticias aunque el cuerpo se tome del text/plain.
+ * @param {object} payload
+ * @returns {string}
+ */
+function findHtml(payload) {
+  if (!payload) return '';
+  const mimeType = (payload.mimeType || '').toLowerCase();
+  if (mimeType === 'text/html' && payload.body && payload.body.data) return decodeBase64Url(payload.body.data);
+  for (const part of payload.parts || []) {
+    const html = findHtml(part);
+    if (html) return html;
+  }
+  return '';
+}
+
+/**
  * Extrae adjuntos PDF de un payload de Gmail y devuelve su texto concatenado.
  * @param {object} gmail - Cliente de Gmail
  * @param {string} messageId - ID del mensaje
@@ -241,7 +259,7 @@ async function extractPdfAttachments(gmail, messageId, payload) {
 /**
  * Lee los emails del label configurado en Gmail.
  * @param {google.auth.OAuth2} auth - Cliente OAuth2 autenticado
- * @returns {Promise<Array<{subject, from, date, body}>>} Lista de emails
+ * @returns {Promise<Array<{subject, from, date, body, links}>>} Lista de emails
  */
 async function getEmails(auth) {
   const gmail = google.gmail({ version: 'v1', auth });
@@ -314,7 +332,15 @@ async function getEmails(auth) {
         body = body ? `${body}\n\n${pdfText}` : pdfText;
       }
 
-      emails.push({ subject, from, date, body });
+      // Enlaces de las noticias (para el link "Ver noticia original" del informe)
+      let links = [];
+      try {
+        links = extractLinks(findHtml(payload), body);
+      } catch (err) {
+        log('WARN', `No se pudieron leer los enlaces del mensaje ${msg.id}: ${err.message}`);
+      }
+
+      emails.push({ subject, from, date, body, links });
     } catch (err) {
       log('WARN', `No se pudo leer el mensaje ${msg.id}: ${err.message}`);
       failed++;
@@ -352,7 +378,9 @@ async function getLatestDigest(auth) {
     if (!best || ts > best.ts) best = { ts, subject, dateDMY: m[1], payload: msg.data.payload };
   }
   if (!best) throw new Error('no se encontró un correo "Resumen Noticias" de los últimos 3 días');
-  const text = parseBody(best.payload);
+  // Un informe con marcadores "N." en vez de números se renumera, para que el audio
+  // encuentre las noticias
+  const text = normalizeNumbering(parseBody(best.payload)).text;
   if (!/ALERTAS DEL D[IÍ]A/i.test(text)) throw new Error('el correo encontrado no tiene el formato del resumen');
   log('INFO', `Resumen encontrado: "${best.subject}" (${text.length} caracteres).`);
   return { text, subject: best.subject, dateDMY: best.dateDMY };

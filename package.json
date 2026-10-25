@@ -9,7 +9,8 @@
   "scripts": {
     "start": "node src/index.js",
     "now": "node src/index.js --run-now",
-    "auth": "node src/index.js --auth-only"
+    "auth": "node src/index.js --auth-only",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.40.0",
