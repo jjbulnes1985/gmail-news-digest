@@ -10,6 +10,7 @@ const { promisify } = require('util');
 const dnsLookup  = promisify(dns.lookup);
 const { log, santiagoDateDMY } = require('./utils');
 const { getChanges } = require('./models');
+const { normalizeNumbering } = require('./report');
 
 /**
  * Convierte el texto plano del resumen (con secciones ÍNDICE / CUERPO / ALERTAS)
@@ -18,7 +19,8 @@ const { getChanges } = require('./models');
  * @returns {string} HTML completo del email
  */
 function convertToHtml(text) {
-  const lines = text.split('\n');
+  // Defensivo: si llegan marcadores "N." en vez de números, sin esto no hay enlaces
+  const lines = normalizeNumbering(text).text.split('\n');
   let html = '';
   let section = '';          // 'indice' | 'cuerpo' | 'alertas' | ''
   let hasBodyAnchors = false;
@@ -82,8 +84,13 @@ function convertToHtml(text) {
     // Fuente: cierra el bloque de la noticia con un link de vuelta a SU titular en el
     // índice (no al comienzo), para seguir leyendo desde donde se iba. Si ese titular
     // no está en el índice, el link vuelve al comienzo del índice.
+    // Si trae "Enlace: URL" (resuelto en summarizer.js), la URL se cambia por un link
+    // "Ver noticia original".
     if (/^\(Fuente:/i.test(p)) {
-      html += `<p class="fuente">${escapeHtml(p)}`;
+      const lm = line.match(/\s*[—–-]\s*Enlace:\s*(https?:\/\/[^\s)]+)/i);
+      const fuente = lm ? line.replace(lm[0], '').replace(/[*#]/g, '').trim() : p;
+      html += `<p class="fuente">${escapeHtml(fuente)}`;
+      if (lm) html += ` · <a class="original" href="${escapeHtml(lm[1])}">Ver noticia original</a>`;
       if (section === 'cuerpo' && hasBodyAnchors) {
         const target = currentNews && indexNums.has(currentNews) ? `idx-${currentNews}` : 'indice';
         html += ` · <a class="volver" href="#${target}">Volver al titular</a>`;
@@ -206,7 +213,7 @@ async function sendDigest(summaryText, audio = null) {
     a { color: #1a4d8f; }
     .idx a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #1a4d8f; }
     .titular { margin-top: 18px; font-weight: bold; }
-    .volver { font-style: normal; font-size: 11px; }
+    .volver, .original { font-style: normal; font-size: 11px; }
     .capitulos { font-size: 12px; color: #444; }
     .audio-nota { font-family: Arial, sans-serif; font-size: 13px; background: #f3f6fa; border-left: 3px solid #1a4d8f; padding: 8px 10px; }
     .fuente {

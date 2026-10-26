@@ -7,6 +7,7 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { log } = require('./utils');
 const { isUnavailable, discoverModel, recordChange } = require('./models');
+const { normalizeNumbering, resolveLinks } = require('./report');
 
 const SYSTEM_PROMPT = `Eres un analista de noticias y mercados para inversionistas de Latinoamérica.
 Reglas:
@@ -35,6 +36,7 @@ const MAX_BODY_CHARS  = 30000;  // tope por correo (incluye el texto de PDFs adj
 const MAX_TOTAL_CHARS = 400000; // tope total del bloque de correos (~100-130 mil tokens)
 const MAX_OUTPUT_TOKENS = 65536; // máximo de Gemini 2.5; el "thinking" también consume de este total
 const THINKING_BUDGET = 2048;    // acota el razonamiento interno para que no se coma la salida
+const MAX_TOTAL_LINKS = 1500;    // tope de enlaces listados a Gemini (todos los correos)
 
 /**
  * Trunca el cuerpo si excede MAX_BODY_CHARS, dejando marca visible.
@@ -54,7 +56,29 @@ function perEmailLimit(emails) {
 }
 
 /**
+ * Lista de enlaces de cada correo con IDs cortos (L1, L2, ...). Gemini responde con el
+ * ID y no con la URL: las URL de los boletines son largas y un modelo puede alterarlas.
+ * @returns {{blocks: string[], linkMap: Map<string,string>}}
+ */
+function buildLinkCatalog(emails) {
+  const perEmail = Math.max(10, Math.min(80, Math.floor(MAX_TOTAL_LINKS / Math.max(1, emails.length))));
+  const linkMap = new Map();
+  const blocks = emails.map((e) => {
+    const links = (e.links || []).slice(0, perEmail);
+    if (!links.length) return '';
+    const rows = links.map((l) => {
+      const id = `L${linkMap.size + 1}`;
+      linkMap.set(id, l.url);
+      return `[${id}] ${l.text}`;
+    });
+    return `Enlaces del correo (titular o texto del enlace; usa solo el ID):\n${rows.join('\n')}\n`;
+  });
+  return { blocks, linkMap };
+}
+
+/**
  * Construye el prompt del usuario a partir de los emails.
+ * @returns {{prompt: string, linkMap: Map<string,string>}}
  */
 function buildUserPrompt(emails) {
   const today = new Date().toLocaleDateString('es-CL', {
@@ -66,36 +90,56 @@ function buildUserPrompt(emails) {
   const truncated = emails.filter((e) => e.body && e.body.length > limit).length;
   log('INFO', `Tope por correo: ${limit} caracteres; ${truncated} de ${emails.length} correo(s) recortado(s).`);
 
+  const { blocks, linkMap } = buildLinkCatalog(emails);
+  log('INFO', `Enlaces listados a Gemini: ${linkMap.size}.`);
+
   const emailsBlock = emails.map((e, i) => (
     `--- EMAIL ${i + 1} ---\n` +
     `Asunto: ${e.subject}\n` +
     `De: ${e.from}\n` +
     `Fecha: ${e.date}\n` +
-    `Contenido:\n${truncateBody(e.body, limit)}\n`
+    `Contenido:\n${truncateBody(e.body, limit)}\n` +
+    blocks[i]
   )).join('\n');
 
-  return `Fecha: ${today}
+  const prompt = `Fecha: ${today}
 Procesa los siguientes ${emails.length} correos y genera un informe con el formato exacto indicado abajo.
 
 ${emailsBlock}
 --- FIN DE CORREOS ---
 
-FORMATO DE SALIDA (texto plano: sin asteriscos, almohadillas ni otro formato markdown; cada noticia empieza en su propia línea con "N."):
+FORMATO DE SALIDA (texto plano: sin asteriscos, almohadillas ni otro formato markdown; cada noticia empieza en su propia línea con su número arábigo seguido de punto: "1.", "2.", "3."... Nunca escribas la letra "N" en lugar del número).
 
 ÍNDICE
 Agrupa las noticias por temática en este orden: Política / Economía & Finanzas / Internacional / Empresas & Negocios / Tecnología / Energía & Minería / Sociedad / Deportes.
 IMPORTANTE: numeración CONTINUA a lo largo de todo el índice (no reiniciar por sección). Ej: si Política termina en 11, Economía empieza en 12.
-Formato por noticia: "N. [Título] — [Temática] — Semáforo: [Alto/Medio/Bajo]"
+Formato por noticia: "[número]. [Título] — [Temática] — Semáforo: [Alto/Medio/Bajo]"
+Ejemplo: "12. Banco Central mantiene la tasa en 4,75% — Economía & Finanzas — Semáforo: Medio"
 
 CUERPO
 Para cada noticia, usando el MISMO número del ÍNDICE:
-N. [Título] — Semáforo: [Alto/Medio/Bajo]
+[número]. [Título] — Semáforo: [Alto/Medio/Bajo]   (mismo número y mismo título que en el ÍNDICE)
 - Si Semáforo es Alto o Medio: desarrolla 7-9 líneas continuas, profundizando en actores clave, hecho principal, contexto (antecedentes relevantes), cifras o datos concretos si están disponibles, y un análisis más detallado de las consecuencias para mercados o inversiones en LatAm (impacto sectorial, riesgo/oportunidad, plazo esperado).
 - Si Semáforo es Bajo: resumen breve de 3-4 líneas con lo esencial (actores, hecho, contexto mínimo).
-(Fuente: {subject} — {from} — {date})
+(Fuente: {subject} — {from} — {date} — Enlace: [ID])
+  En "Enlace" va el ID (por ejemplo L27) del enlace de ESA noticia, tomado de la lista "Enlaces del correo" del mismo correo de origen. Si ningún enlace corresponde claramente a esa noticia, escribe "Enlace: ninguno". Nunca escribas URL ni inventes IDs.
 
 ALERTAS DEL DÍA
-Máximo 3 puntos con los riesgos o movimientos más relevantes.`;
+Máximo 3 puntos con los riesgos o movimientos más relevantes, numerados "1.", "2.", "3.".`;
+
+  return { prompt, linkMap };
+}
+
+/**
+ * Ajustes deterministas al informe: números en vez de marcadores "N." y URL reales
+ * en vez de los IDs de enlace.
+ */
+function postProcess(text, linkMap) {
+  const num = normalizeNumbering(text);
+  if (num.fixed) log('WARN', `El informe traía marcadores en vez de números: ${num.fixed} línea(s) renumerada(s).`);
+  const links = resolveLinks(num.text, linkMap);
+  log('INFO', `Enlaces a la noticia original: ${links.resolved}${links.dropped ? ` (${links.dropped} ID(s) inexistente(s) descartado(s))` : ''}.`);
+  return links.text;
 }
 
 /**
@@ -106,7 +150,7 @@ Máximo 3 puntos con los riesgos o movimientos más relevantes.`;
  */
 async function summarize(emails) {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const userPrompt = buildUserPrompt(emails);
+  const { prompt: userPrompt, linkMap } = buildUserPrompt(emails);
 
   log('INFO', `Enviando ${emails.length} email(s) a Gemini para generar el resumen...`);
 
@@ -150,7 +194,7 @@ async function summarize(emails) {
           }
 
           log('INFO', `Resumen generado con ${modelName} (${text.length} caracteres).`);
-          return text;
+          return postProcess(text, linkMap);
         } catch (err) {
           lastError = err;
           // Modelo retirado o inexistente: se descarta sin reintentar. Si ya no queda
@@ -183,4 +227,4 @@ async function summarize(emails) {
   throw lastError;
 }
 
-module.exports = { summarize };
+module.exports = { summarize, buildUserPrompt, postProcess };
