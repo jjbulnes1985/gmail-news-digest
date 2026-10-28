@@ -10,7 +10,7 @@ const { promisify } = require('util');
 const dnsLookup  = promisify(dns.lookup);
 const { log, santiagoDateDMY } = require('./utils');
 const { getChanges } = require('./models');
-const { normalizeNumbering } = require('./report');
+const { normalizeNumbering, readHeader } = require('./report');
 
 /**
  * Convierte el texto plano del resumen (con secciones ÍNDICE / CUERPO / ALERTAS)
@@ -60,6 +60,13 @@ function convertToHtml(text) {
 
     if (/^---+$/.test(line)) { html += '<hr>\n'; continue; }
 
+    // Subtítulos de ámbito ("CHILE") y de temática ("Política") en índice y cuerpo
+    if (section === 'indice' || section === 'cuerpo') {
+      const h = readHeader(line);
+      if (h && h.ambito) { html += `<h3 class="ambito">${escapeHtml(h.ambito)}</h3>\n`; continue; }
+      if (h && h.tema) { html += `<h4 class="tema">${escapeHtml(h.tema)}</h4>\n`; continue; }
+    }
+
     // Noticia numerada: "N. Título — ... — Semáforo: X"
     const m = p.match(/^N?°?\s*(\d+)[\.\)]\s/);
     if (m) {
@@ -90,7 +97,7 @@ function convertToHtml(text) {
       const lm = line.match(/\s*[—–-]\s*Enlace:\s*(https?:\/\/[^\s)]+)/i);
       const fuente = lm ? line.replace(lm[0], '').replace(/[*#]/g, '').trim() : p;
       html += `<p class="fuente">${escapeHtml(fuente)}`;
-      if (lm) html += ` · <a class="original" href="${escapeHtml(lm[1])}">Ver noticia original</a>`;
+      if (lm) html += ` · <a class="original" href="${escapeHtml(lm[1])}" target="_blank" rel="noopener">Ver noticia original</a>`;
       if (section === 'cuerpo' && hasBodyAnchors) {
         const target = currentNews && indexNums.has(currentNews) ? `idx-${currentNews}` : 'indice';
         html += ` · <a class="volver" href="#${target}">Volver al titular</a>`;
@@ -149,7 +156,7 @@ function chaptersHtml(audio) {
   return `<br><span class="capitulos">Capítulos: ${audio.chapters.map((c) => `${escapeHtml(c.titulo)} ${c.inicio}`).join(' · ')}</span>`;
 }
 
-async function sendDigest(summaryText, audio = null) {
+async function sendDigest(summaryText, audio = null, { subjectPrefix = '' } = {}) {
   const today = santiagoDateDMY(Date.now()); // fecha de Chile, no la del runner (UTC)
 
   // Convertir el texto a HTML con estilos de email
@@ -215,6 +222,8 @@ async function sendDigest(summaryText, audio = null) {
     .titular { margin-top: 18px; font-weight: bold; }
     .volver, .original { font-style: normal; font-size: 11px; }
     .capitulos { font-size: 12px; color: #444; }
+    .ambito { font-size: 15px; margin: 22px 0 6px; padding: 4px 8px; background: #1a1a2e; color: #ffffff; letter-spacing: 0.5px; text-transform: uppercase; font-family: Arial, sans-serif; }
+    .tema { font-size: 14px; margin: 12px 0 4px; color: #1a4d8f; border-bottom: 1px solid #dde3ec; font-family: Arial, sans-serif; }
     .audio-nota { font-family: Arial, sans-serif; font-size: 13px; background: #f3f6fa; border-left: 3px solid #1a4d8f; padding: 8px 10px; }
     .fuente {
       font-size: 12px;
@@ -272,7 +281,7 @@ async function sendDigest(summaryText, audio = null) {
   const mailOptions = {
     from:    `"Resumen Noticias" <${process.env.SMTP_USER}>`,
     to:      process.env.DIGEST_RECIPIENT,
-    subject: `📰 Resumen Noticias — ${today}`,
+    subject: `${subjectPrefix}📰 Resumen Noticias — ${today}`,
     html:    htmlEmail,
     text:    summaryText,
     attachments: audioMain,

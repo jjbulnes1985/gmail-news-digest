@@ -60,7 +60,7 @@ test('HTML: índice → desarrollo, desarrollo → titular y desarrollo → noti
     assert.match(html, new RegExp(`id="noticia-${n}"`));
     assert.match(html, new RegExp(`href="#idx-${n}">Volver al titular`));
   }
-  assert.match(html, /<a class="original" href="https:\/\/ellibero\.cl\/afp\?a=1&amp;b=2">Ver noticia original<\/a>/);
+  assert.match(html, /<a class="original" href="https:\/\/ellibero\.cl\/afp\?a=1&amp;b=2" target="_blank" rel="noopener">Ver noticia original<\/a>/);
   assert.strictEqual((html.match(/Ver noticia original/g) || []).length, 1);
   assert.doesNotMatch(html, /Enlace:/);
 });

@@ -27,6 +27,7 @@ const { execFileSync, spawn, spawnSync } = require('child_process');
 const { log } = require('./utils');
 const { isUnavailable, discoverModel, recordChange } = require('./models');
 const { normalizeForSpeech } = require('./speech-text');
+const { readHeader, parseHead } = require('./report');
 
 const TTS_ENDPOINT   = 'https://generativelanguage.googleapis.com/v1beta/interactions';
 // Modelos vigentes según la documentación de Gemini (consultada el 22-10-2026).
@@ -113,21 +114,32 @@ function themeMap(text) {
   const theme = new Map();
   const order = [];
   let header = null;
+  let ambito = null;   // subtítulo de ámbito vigente ("CHILE", "AMÉRICA LATINA", "INTERNACIONAL")
   for (const raw of idx.split('\n')) {
     const line = clean(raw);
     if (!line) continue;
     const m = line.match(/^(\d+)[\.\)]\s+(.*)$/);
     if (!m) {
+      const h = readHeader(line);
+      if (h && h.ambito) { ambito = h.ambito; header = null; continue; }
+      if (h && h.tema) { header = h.tema; continue; }
       if (!/^(ÍNDICE|INDICE|INFORME|FECHA)/i.test(line) && line.length < 40 && !/[.:]$/.test(line)) header = line;
       continue;
     }
-    const segs = m[2].split(/\s+[—–-]\s+/);
-    let th = null;
-    const iSem = segs.findIndex((x) => /^Semáforo:/i.test(x));
-    if (iSem >= 2) th = segs[iSem - 1];
-    th = (th || header || 'Otras noticias').trim();
-    theme.set(m[1], th);
-    if (!order.includes(th)) order.push(th);
+    // Formato con subtítulos (informe segmentado) o "Título — [Ámbito —] Temática — Semáforo"
+    const info = parseHead(m[2]);
+    const amb = info.ambito || ambito;
+    let th = info.tema || header;
+    // Formato antiguo: el segmento previo al semáforo es la temática, salvo que sea un ámbito
+    if (!th && !info.ambito) {
+      const segs = m[2].split(/\s+[—–-]\s+/);
+      const iSem = segs.findIndex((x) => /^Semáforo:/i.test(x));
+      if (iSem >= 2) th = segs[iSem - 1];
+    }
+    th = th ? th.trim() : null;
+    const key = amb && th ? `${amb}, ${th}` : (amb || th || 'Otras noticias');
+    theme.set(m[1], key);
+    if (!order.includes(key)) order.push(key);
   }
   return { theme, order };
 }

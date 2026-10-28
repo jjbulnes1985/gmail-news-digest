@@ -10,7 +10,8 @@ const { google } = require('googleapis');
 let pdfParse;
 try { pdfParse = require('pdf-parse'); } catch (_) { pdfParse = null; }
 const { stripHtml, log, getLastRunEpoch } = require('./utils');
-const { extractLinks, normalizeNumbering } = require('./report');
+const { extractLinks, cleanLinks, normalizeNumbering } = require('./report');
+const { extractPdfLinks } = require('./pdf-links');
 
 // Permisos de solo lectura (principio de mínimo privilegio)
 const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
@@ -214,6 +215,7 @@ function findHtml(payload) {
  */
 async function extractPdfAttachments(gmail, messageId, payload) {
   const pdfTexts = [];
+  const pdfLinks = [];
 
   async function processParts(parts) {
     if (!parts) return;
@@ -242,6 +244,14 @@ async function extractPdfAttachments(gmail, messageId, payload) {
               pdfTexts.push(`[PDF: ${filename}]\n${parsed.text.trim()}`);
               log('INFO', `PDF procesado: ${filename}`);
             }
+            // Enlaces de los titulares del PDF (anotaciones), p. ej. Valor Diario
+            try {
+              const links = await extractPdfLinks(buffer);
+              pdfLinks.push(...links);
+              log('INFO', `PDF ${part.filename || ''}: ${links.length} enlace(s) en anotaciones.`);
+            } catch (err) {
+              log('WARN', `No se pudieron leer los enlaces del PDF: ${err.message}`);
+            }
           }
         } catch (err) {
           log('WARN', `No se pudo leer PDF adjunto: ${err.message}`);
@@ -253,7 +263,7 @@ async function extractPdfAttachments(gmail, messageId, payload) {
   }
 
   await processParts(payload.parts);
-  return pdfTexts.join('\n\n');
+  return { text: pdfTexts.join('\n\n'), links: pdfLinks };
 }
 
 /**
@@ -261,14 +271,17 @@ async function extractPdfAttachments(gmail, messageId, payload) {
  * @param {google.auth.OAuth2} auth - Cliente OAuth2 autenticado
  * @returns {Promise<Array<{subject, from, date, body, links}>>} Lista de emails
  */
-async function getEmails(auth) {
+async function getEmails(auth, { hoursBack: windowHours = null } = {}) {
   const gmail = google.gmail({ version: 'v1', auth });
 
   const gmailLabel   = process.env.GMAIL_LABEL    || 'noticias';
   const hoursBack    = parseInt(process.env.HOURS_LOOKBACK, 10) || 24;
   const maxResults   = parseInt(process.env.MAX_EMAILS_PER_RUN, 10) || 100;
   // Si un día falla, el siguiente recupera lo pendiente (hasta 72h atrás)
-  const afterEpoch   = getLastRunEpoch(Math.max(hoursBack, 72));
+  // Modo prueba: ventana fija (p. ej. últimas 24 h), sin depender de la última corrida
+  const afterEpoch   = windowHours
+    ? Math.floor((Date.now() - windowHours * 3600 * 1000) / 1000)
+    : getLastRunEpoch(Math.max(hoursBack, 72));
 
   const query = `label:${gmailLabel} after:${afterEpoch}`;
   log('INFO', `Buscando emails con query: "${query}" (máx. ${maxResults})`);
@@ -327,15 +340,16 @@ async function getEmails(auth) {
       let body = parseBody(payload);
 
       // Extraer texto de adjuntos PDF (si los hay)
-      const pdfText = await extractPdfAttachments(gmail, msg.id, payload);
-      if (pdfText) {
-        body = body ? `${body}\n\n${pdfText}` : pdfText;
+      const pdf = await extractPdfAttachments(gmail, msg.id, payload);
+      if (pdf.text) {
+        body = body ? `${body}\n\n${pdf.text}` : pdf.text;
       }
 
       // Enlaces de las noticias (para el link "Ver noticia original" del informe)
       let links = [];
       try {
-        links = extractLinks(findHtml(payload), body);
+        // Enlaces del cuerpo (HTML o texto plano) + enlaces de los PDF adjuntos
+        links = cleanLinks([...extractLinks(findHtml(payload), body, 200), ...pdf.links], 120);
       } catch (err) {
         log('WARN', `No se pudieron leer los enlaces del mensaje ${msg.id}: ${err.message}`);
       }
@@ -364,7 +378,7 @@ async function getEmails(auth) {
 async function getLatestDigest(auth) {
   const gmail = google.gmail({ version: 'v1', auth });
   const list = await gmail.users.messages.list({
-    userId: 'me', q: 'subject:"Resumen Noticias" -subject:Audio newer_than:3d', maxResults: 10,
+    userId: 'me', q: 'subject:"Resumen Noticias" -subject:Audio -subject:PRUEBA newer_than:3d', maxResults: 10,
   });
   const ids = (list.data.messages || []).map((m) => m.id);
   let best = null;
@@ -373,7 +387,7 @@ async function getLatestDigest(auth) {
     const headers = msg.data.payload.headers || [];
     const subject = (headers.find((h) => h.name.toLowerCase() === 'subject') || {}).value || '';
     const m = subject.match(/Resumen Noticias\s*\S*\s*(\d{2}\/\d{2}\/\d{4})/);
-    if (!m || /audio/i.test(subject)) continue;
+    if (!m || /audio|prueba/i.test(subject)) continue;
     const ts = Number(msg.data.internalDate || 0);
     if (!best || ts > best.ts) best = { ts, subject, dateDMY: m[1], payload: msg.data.payload };
   }

@@ -122,7 +122,8 @@ function scaleWord(sc, n) {
 function normalizeForSpeech(input) {
   let t = String(input || '');
 
-  // Formato y símbolos sin lectura
+  // Formato y símbolos sin lectura (las URL nunca se leen)
+  t = t.replace(/https?:\/\/\S+/g, ' ');
   t = t.replace(/\*\*/g, '').replace(/[*#_`]/g, '')
     .replace(/\s*[—–]\s*/g, ', ')
     .replace(/[“”«»"]/g, '')
