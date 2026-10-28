@@ -1,17 +1,9 @@
 name: Gmail News Digest
 
 on:
-  schedule:
-    # Respaldos TARDÍOS (hora Chile verano, UTC-3). GitHub atrasa estos disparos
-    # entre 2,8 y 8,8 horas (medido 8 al 22-oct-2026; mediana 4,5 horas), así que
-    # solo sirven como red de seguridad si falla el disparador principal. Si el
-    # informe del día ya salió,
-    # se omiten solos (control por fecha calendario de Santiago en el código).
-    - cron: '35 11 * * *'   # 8:35 nominal
-    - cron: '5 12 * * *'    # 9:05 nominal
-    - cron: '45 12 * * *'   # 9:45 nominal
-  workflow_dispatch:         # DISPARADOR PRINCIPAL: tarea programada de Claude a las 8:20 Chile
-                             # (vía conexión GitHub en Composio); también manual.
+  # Una sola corrida al día: la dispara la tarea programada de Claude a las 8:20 (Chile).
+  # Sin respaldos por cron: GitHub los atrasaba entre 2,8 y 8,8 horas y corrían en la tarde.
+  workflow_dispatch:         # Tarea programada de Claude a las 8:20 Chile (vía Composio); también manual.
     inputs:
       modo:
         description: 'normal = resumen diario; solo-audio = regenera y envía solo el MP3 del último resumen'
