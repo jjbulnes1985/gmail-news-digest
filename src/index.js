@@ -27,6 +27,9 @@ const args      = process.argv.slice(2);
 const RUN_NOW   = args.includes('--run-now');
 const AUTH_ONLY = args.includes('--auth-only');
 const AUDIO_ONLY = args.includes('--audio-only');
+// Modo prueba: genera el informe con los correos de las últimas 24 h y lo envía con
+// asunto "[PRUEBA]", sin audio, sin control anti-duplicado y sin tocar last_run.json.
+const TEST_MODE = args.includes('--test');
 
 /**
  * Ejecuta el pipeline completo:
@@ -38,7 +41,7 @@ const AUDIO_ONLY = args.includes('--audio-only');
  * GitHub marca la corrida como fallida (y avisa por email) y el siguiente
  * disparo de respaldo vuelve a intentar.
  */
-async function runDigest() {
+async function runDigest({ test = false } = {}) {
   const startedAt = Date.now();
   log('INFO', '═══════════════════════════════════════════════');
   log('INFO', 'Iniciando ciclo de resumen de noticias...');
@@ -47,7 +50,7 @@ async function runDigest() {
   // ─── Check de idempotencia: evitar envío duplicado ────────────────────────
   const today       = santiagoDate(startedAt);
   const lastRunDate = getLastRunDate();
-  if (lastRunDate === today) {
+  if (!test && lastRunDate === today) {
     log('INFO', `Ya se envió el informe de hoy (${today}, hora de Santiago). Omitiendo para evitar duplicado.`);
     return;
   }
@@ -56,7 +59,7 @@ async function runDigest() {
   let emails;
   try {
     const auth = await authorize();
-    emails = await getEmails(auth);
+    emails = await getEmails(auth, test ? { hoursBack: 24 } : {});
   } catch (err) {
     log('ERROR', `Fallo en lectura de Gmail: ${err.message}`);
     throw err;
@@ -84,13 +87,21 @@ async function runDigest() {
     const dateLabel = new Date(startedAt).toLocaleDateString('es-CL', {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Santiago',
     });
-    const audio = await generateAudio(summary, dateLabel);
-    await sendDigest(summary, audio);
+    if (test) {
+      await sendDigest(summary, null, { subjectPrefix: '[PRUEBA] ' });
+    } else {
+      const audio = await generateAudio(summary, dateLabel);
+      await sendDigest(summary, audio);
+    }
   } catch (err) {
     log('ERROR', `Fallo en envío del email: ${err.message}`);
     throw err;
   }
 
+  if (test) {
+    log('INFO', 'Modo prueba completado: no se actualiza last_run.json.');
+    return;
+  }
   saveLastRun(startedAt);
   log('INFO', 'Ciclo completado exitosamente.');
 }
@@ -133,6 +144,15 @@ if (AUDIO_ONLY) {
     })
     .catch((err) => {
       log('ERROR', `Error durante la autorización: ${err.message}`);
+      process.exit(1);
+    });
+
+} else if (TEST_MODE) {
+  log('INFO', 'Modo: prueba (--test).');
+  runDigest({ test: true })
+    .then(() => process.exit(0))
+    .catch((err) => {
+      log('ERROR', `Error en modo prueba: ${err.message}`);
       process.exit(1);
     });
 

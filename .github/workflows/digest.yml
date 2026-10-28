@@ -14,11 +14,11 @@ on:
                              # (vía conexión GitHub en Composio); también manual.
     inputs:
       modo:
-        description: 'normal = resumen diario; solo-audio = regenera y envía solo el MP3 del último resumen'
+        description: 'normal = resumen diario; solo-audio = regenera y envía solo el audio del último resumen; prueba = informe de las últimas 24 h con asunto [PRUEBA], sin audio ni last_run'
         required: false
         default: normal
         type: choice
-        options: [normal, solo-audio]
+        options: [normal, solo-audio, prueba]
 
 # Evita que dos disparos cercanos corran en paralelo. El segundo espera en cola,
 # así el control de idempotencia siempre ve el last_run.json ya actualizado.
@@ -90,7 +90,7 @@ jobs:
           OAUTH_TOKEN: ${{ secrets.OAUTH_TOKEN }}
 
       - name: Ejecutar pipeline
-        run: node src/index.js ${{ inputs.modo == 'solo-audio' && '--audio-only' || '--run-now' }}
+        run: node src/index.js ${{ inputs.modo == 'solo-audio' && '--audio-only' || (inputs.modo == 'prueba' && '--test' || '--run-now') }}
 
       - name: Guardar last_run.json
         run: |

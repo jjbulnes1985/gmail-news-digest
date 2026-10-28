@@ -140,6 +140,17 @@ function extractLinks(html, plainText = '', max = 80) {
     }
   }
 
+  return cleanLinks(found, max);
+}
+
+/**
+ * Filtra y deduplica enlaces {text, url}: descarta bajas, redes, tiendas, textos
+ * genéricos o muy cortos, y repetidos. Se usa para los enlaces del HTML, del texto
+ * plano y de los PDF adjuntos.
+ * @param {{text: string, url: string}[]} found
+ * @param {number} max
+ */
+function cleanLinks(found, max = 80) {
   const out = [];
   const seenUrl = new Set(); const seenText = new Set();
   for (const { text, url } of found) {
@@ -175,4 +186,195 @@ function resolveLinks(text, linkMap) {
   return { text: out, resolved, dropped };
 }
 
-module.exports = { normalizeNumbering, extractLinks, resolveLinks, titleKey };
+// ─── Segmentación por ámbito y temática ────────────────────────────────────
+//
+// Gemini no respeta de forma estable el orden pedido (el 27-10-2026 el índice tuvo
+// 38 tramos de temáticas intercaladas). Aquí el código reordena y renumera el índice
+// y el cuerpo según un orden fijo, y escribe los subtítulos de ámbito y temática.
+
+const AMBITOS = ['Chile', 'América Latina', 'Internacional'];
+const TEMAS = ['Política', 'Economía y Finanzas', 'Empresas y Negocios', 'Energía y Minería', 'Tecnología', 'Sociedad', 'Deportes'];
+const NIVELES = ['Alto', 'Medio', 'Bajo'];
+const DEFAULT_AMBITO = 'Internacional';
+const DEFAULT_TEMA = 'Sociedad';
+
+const fold = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+  .replace(/[*#:]/g, '').replace(/\s+/g, ' ').trim();
+
+const AMBITO_SYN = new Map([
+  ['chile', 'Chile'], ['nacional', 'Chile'], ['nacionales', 'Chile'], ['local', 'Chile'],
+  ['america latina', 'América Latina'], ['latinoamerica', 'América Latina'], ['latam', 'América Latina'],
+  ['region', 'América Latina'], ['regional', 'América Latina'], ['sudamerica', 'América Latina'], ['iberoamerica', 'América Latina'],
+  ['internacional', 'Internacional'], ['internacionales', 'Internacional'], ['mundo', 'Internacional'], ['global', 'Internacional'], ['exterior', 'Internacional'],
+]);
+const TEMA_SYN = new Map([
+  ['politica', 'Política'],
+  ['economia y finanzas', 'Economía y Finanzas'], ['economia & finanzas', 'Economía y Finanzas'], ['economia', 'Economía y Finanzas'], ['finanzas', 'Economía y Finanzas'], ['mercados', 'Economía y Finanzas'],
+  ['empresas y negocios', 'Empresas y Negocios'], ['empresas & negocios', 'Empresas y Negocios'], ['empresas', 'Empresas y Negocios'], ['negocios', 'Empresas y Negocios'],
+  ['energia y mineria', 'Energía y Minería'], ['energia & mineria', 'Energía y Minería'], ['energia', 'Energía y Minería'], ['mineria', 'Energía y Minería'],
+  ['tecnologia', 'Tecnología'], ['tech', 'Tecnología'], ['innovacion', 'Tecnología'],
+  ['sociedad', 'Sociedad'], ['social', 'Sociedad'], ['salud', 'Sociedad'], ['educacion', 'Sociedad'], ['cultura', 'Sociedad'], ['medio ambiente', 'Sociedad'],
+  ['deportes', 'Deportes'], ['deporte', 'Deportes'],
+]);
+const mapAmbito = (s) => AMBITO_SYN.get(fold(s)) || null;
+const mapTema = (s) => TEMA_SYN.get(fold(s)) || null;
+const ambitoHeader = (a) => a.toUpperCase();
+
+/** ¿Es una línea de subtítulo (ámbito o temática), sin contenido de noticia? */
+function isHeaderLine(line) {
+  const p = plain(line);
+  if (!p || p.length > 40 || /[.]$/.test(p)) return false;
+  return !!(mapAmbito(p) || mapTema(p) || fold(p) === 'internacional');
+}
+
+/**
+ * Lee un subtítulo: en MAYÚSCULAS es ámbito ("CHILE", "INTERNACIONAL"); si no, temática
+ * ("Política"), y si no calza como temática, ámbito. Devuelve null si no es subtítulo.
+ */
+function readHeader(line) {
+  if (!isHeaderLine(line)) return null;
+  const p = plain(line);
+  const upper = p === p.toUpperCase() && /[A-ZÁÉÍÓÚÑ]/.test(p);
+  if (upper && mapAmbito(p)) return { ambito: mapAmbito(p) };
+  if (mapTema(p)) return { tema: mapTema(p) };
+  if (mapAmbito(p)) return { ambito: mapAmbito(p) };
+  return null;
+}
+
+/** Separa "Título — Ámbito — Temática — Semáforo: X" en sus partes. */
+function parseHead(rest) {
+  const segs = plain(rest).split(/\s+[—–]\s+/);
+  const iSem = segs.findIndex((x) => /^Sem[aá]foro\s*:/i.test(x));
+  let nivel = null;
+  let before = segs;
+  if (iSem >= 0) {
+    const m = segs[iSem].match(/(Alto|Medio|Bajo)/i);
+    nivel = m ? m[1][0].toUpperCase() + m[1].slice(1).toLowerCase() : null;
+    before = segs.slice(0, iSem);
+  }
+  let ambito = null; let tema = null;
+  // Desde el final: temática y luego ámbito, si calzan con el vocabulario
+  if (before.length > 1 && mapTema(before[before.length - 1])) tema = mapTema(before.pop());
+  else if (before.length > 1 && mapAmbito(before[before.length - 1])) ambito = mapAmbito(before.pop());
+  if (!ambito && before.length > 1 && mapAmbito(before[before.length - 1])) ambito = mapAmbito(before.pop());
+  return { title: before.join(' — ').trim(), nivel, ambito, tema };
+}
+
+/**
+ * Reordena y renumera el informe por ámbito → temática → semáforo, con subtítulos.
+ * Un informe sin ÍNDICE o sin CUERPO se devuelve sin cambios.
+ * @param {string} text - informe ya con números (después de normalizeNumbering)
+ * @returns {{text: string, changed: boolean, counts: Object<string, number>, defaults: number, bodyOnly: number, indexOnly: number}}
+ */
+function segmentReport(text) {
+  const lines = text.replace(/\r/g, '').split('\n');
+  const iIdx = lines.findIndex((l) => sectionOf(l) === 'indice');
+  const iBody = lines.findIndex((l) => sectionOf(l) === 'cuerpo');
+  const iAl = lines.findIndex((l) => sectionOf(l) === 'alertas');
+  const empty = { text, changed: false, counts: {}, defaults: 0, bodyOnly: 0, indexOnly: 0 };
+  if (iIdx < 0 || iBody < 0 || iBody < iIdx) return empty;
+  const bodyEnd = iAl > iBody ? iAl : lines.length;
+
+  const NUM = /^[*#\s]*(\d+)\s*[\.\)]\s+(.*)$/;
+  // Índice
+  // Los subtítulos (ámbito / temática) también clasifican: así un informe ya
+  // segmentado se vuelve a procesar sin perder su clasificación.
+  const withHeaders = (ctx, info) => ({ ...info, ambito: info.ambito || ctx.ambito || null, tema: info.tema || ctx.tema || null });
+  const track = (ctx, l) => {
+    const h = readHeader(l);
+    if (!h) return false;
+    if (h.ambito) { ctx.ambito = h.ambito; ctx.tema = null; } else ctx.tema = h.tema;
+    return true;
+  };
+  const index = new Map(); const indexOrder = [];
+  const ictx = {};
+  for (const l of lines.slice(iIdx + 1, iBody)) {
+    if (track(ictx, l)) continue;
+    const m = l.trim().match(NUM);
+    if (!m) continue;
+    const n = +m[1];
+    if (!index.has(n)) { index.set(n, withHeaders(ictx, parseHead(m[2]))); indexOrder.push(n); }
+  }
+  // Cuerpo
+  const body = new Map(); const bodyOrder = [];
+  let cur = null;
+  const bctx = {};
+  for (const l of lines.slice(iBody + 1, bodyEnd)) {
+    if (track(bctx, l)) continue;            // subtítulos (de Gemini o de una pasada anterior)
+    const m = l.trim().match(NUM);
+    if (m && !body.has(+m[1])) {
+      cur = { n: +m[1], head: withHeaders(bctx, parseHead(m[2])), content: [] };
+      body.set(cur.n, cur); bodyOrder.push(cur.n);
+      continue;
+    }
+    if (!cur) continue;
+    cur.content.push(l.replace(/\s+$/, ''));
+  }
+  if (!indexOrder.length && !bodyOrder.length) return empty;
+
+  // Entradas: todas las del índice + las del cuerpo que no estén en el índice
+  let defaults = 0;
+  const entries = [];
+  const add = (n, info, inIndex) => {
+    let ambito = info.ambito; let tema = info.tema;
+    const b = body.get(n);
+    if (!ambito && b && b.head.ambito) ambito = b.head.ambito;
+    if (!tema && b && b.head.tema) tema = b.head.tema;
+    if (!ambito || !tema) defaults++;
+    entries.push({
+      n, inIndex, title: info.title || (b && b.head.title) || '',
+      nivel: info.nivel || (b && b.head.nivel) || null,
+      ambito: ambito || DEFAULT_AMBITO, tema: tema || DEFAULT_TEMA, body: b,
+    });
+  };
+  indexOrder.forEach((n) => add(n, index.get(n), true));
+  let bodyOnly = 0;
+  bodyOrder.filter((n) => !index.has(n)).forEach((n) => { bodyOnly++; add(n, body.get(n).head, false); });
+  const indexOnly = indexOrder.filter((n) => !body.has(n)).length;
+
+  const lvl = (x) => (NIVELES.indexOf(x) < 0 ? 3 : NIVELES.indexOf(x));
+  const sorted = [...entries].sort((a, b) =>
+    (AMBITOS.indexOf(a.ambito) - AMBITOS.indexOf(b.ambito))
+    || (TEMAS.indexOf(a.tema) - TEMAS.indexOf(b.tema))
+    || (lvl(a.nivel) - lvl(b.nivel))
+    || (a.n - b.n));
+  sorted.forEach((e, i) => { e.nuevo = i + 1; });
+  const changed = sorted.some((e, i) => e.n !== i + 1) || entries.length !== indexOrder.length;
+
+  const head = (e) => `${e.nuevo}. ${e.title}${e.nivel ? ` — Semáforo: ${e.nivel}` : ''}`;
+  const grouped = (render) => {
+    const out = []; let a = null; let t = null;
+    for (const e of sorted) {
+      if (e.ambito !== a) { out.push('', ambitoHeader(e.ambito)); a = e.ambito; t = null; }
+      if (e.tema !== t) { out.push(e.tema); t = e.tema; }
+      out.push(...render(e));
+    }
+    return out;
+  };
+
+  const counts = {};
+  for (const e of sorted) { const k = `${e.ambito} / ${e.tema}`; counts[k] = (counts[k] || 0) + 1; }
+
+  const pre = lines.slice(0, iIdx);
+  while (pre.length && !pre[pre.length - 1].trim()) pre.pop();
+  const out = [
+    ...pre, ...(pre.length ? [''] : []),
+    'ÍNDICE',
+    ...grouped((e) => (e.inIndex ? [head(e)] : [head(e)])),
+    '', 'CUERPO',
+    ...grouped((e) => {
+      if (!e.body) return [];
+      const content = [...e.body.content];
+      while (content.length && !content[content.length - 1].trim()) content.pop();
+      while (content.length && !content[0].trim()) content.shift();
+      return [head(e), ...content, ''];
+    }),
+    ...(iAl > iBody ? ['', ...lines.slice(iAl)] : []),
+  ];
+  return { text: out.join('\n').replace(/\n{3,}/g, '\n\n'), changed, counts, defaults, bodyOnly, indexOnly };
+}
+
+module.exports = {
+  normalizeNumbering, extractLinks, cleanLinks, resolveLinks, titleKey,
+  segmentReport, parseHead, isHeaderLine, readHeader, mapAmbito, mapTema, AMBITOS, TEMAS,
+};
