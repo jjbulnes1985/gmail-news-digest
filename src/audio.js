@@ -51,6 +51,7 @@ const MP3_FALLBACK_BITRATE = '32k';    // re-codificación si el MP3 excede el t
 // Tope del MP3 con margen: 18 MB (18.000.000 bytes).
 const MAX_MP3_BYTES  = parseInt(process.env.AUDIO_MAX_MP3_BYTES, 10) || 18 * 1000 * 1000;
 const PAUSE_SECONDS  = 1.2;            // silencio entre secciones (y tras el índice)
+const SEGMENT_BITRATE = '48k';         // MP3 por segmento para el podcast (archivos cortos)
 const M4A_BITRATE    = '40k';          // AAC mono para voz: 18 MB por hora (medido: 51,6 min a 48k = 19,2 MB)
 const ENGINE         = (process.env.AUDIO_ENGINE || 'auto').toLowerCase();
 const PIPER_PYTHON   = process.env.PIPER_PYTHON || 'python3';
@@ -150,6 +151,7 @@ function buildSections(text, dateLabel) {
   if (alerts.length) {
     secciones.push({
       titulo: 'Alertas del día',
+      detalle: alerts.map((a) => a.length > 140 ? `${a.slice(0, 137)}...` : a),
       texto: ['Alertas del día.', ...alerts.map((a, k) => `Alerta ${k + 1}. ${a}`)].join('\n\n'),
     });
   }
@@ -162,6 +164,7 @@ function buildSections(text, dateLabel) {
     const titulo = th.replace(/\s*&\s*/g, ' y ');
     secciones.push({
       titulo,
+      detalle: news.map((i) => `${i.n}. ${i.title} (${i.level})`),
       texto: [`${titulo}.`, ...news.map((i) => `Noticia ${i.n}. ${i.title}. ${i.body}`)].join('\n\n'),
     });
   }
@@ -169,7 +172,7 @@ function buildSections(text, dateLabel) {
     + `${counts.alto} noticias de prioridad alta y ${counts.medio} de prioridad media, en ${secciones.length} secciones.`;
   return {
     saludo: normalizeForSpeech(saludo),
-    secciones: secciones.map((x) => ({ titulo: x.titulo, texto: normalizeForSpeech(x.texto) })),
+    secciones: secciones.map((x) => ({ titulo: x.titulo, detalle: x.detalle, texto: normalizeForSpeech(x.texto) })),
     counts,
   };
 }
@@ -485,6 +488,35 @@ function encodeFormat(pcmPath, sampleRate, metaPath, dir, ext) {
 }
 
 /**
+ * Codifica cada segmento (Índice, Alertas, cada temática) como MP3 independiente para el
+ * podcast. Reutiliza el PCM ya sintetizado: no vuelve a llamar al motor de voz.
+ * Nunca lanza: si falla, devuelve [] y el podcast informa el motivo.
+ * @returns {{titulo:string, detalle:string[], path:string, bytes:number, seconds:number}[]}
+ */
+function encodeSegments(segs, sampleRate, dir, dateLabel) {
+  const ff = ffmpegPath();
+  const out = [];
+  try {
+    segs.forEach((sg, k) => {
+      const nn = String(k).padStart(2, '0');
+      const pcmPath = path.join(dir, `seg-${nn}.pcm`);
+      const mp3Path = path.join(dir, `seg-${nn}.mp3`);
+      fs.writeFileSync(pcmPath, sg.pcm);
+      execFileSync(ff, ['-y', '-loglevel', 'error', '-f', 's16le', '-ar', String(sampleRate), '-ac', '1', '-i', pcmPath,
+        '-c:a', 'libmp3lame', '-b:a', SEGMENT_BITRATE, '-id3v2_version', '3',
+        '-metadata', `title=${nn} · ${sg.titulo}`, '-metadata', 'artist=Resumen Noticias',
+        '-metadata', `album=Resumen de Noticias ${dateLabel}`, '-metadata', `track=${k + 1}/${segs.length}`, mp3Path]);
+      fs.unlinkSync(pcmPath);
+      out.push({ titulo: sg.titulo, detalle: sg.detalle || [], path: mp3Path, bytes: fs.statSync(mp3Path).size, seconds: sg.pcm.length / 2 / sampleRate });
+    });
+    return out;
+  } catch (err) {
+    log('WARN', `Segmentos del podcast no generados: ${err.message.slice(0, 160)}`);
+    return [];
+  }
+}
+
+/**
  * Genera el audio con índice hablado y capítulos. Nunca lanza.
  * @returns {Promise<{ok:boolean, reason?:string, partial?:boolean, coverage?:string, minutes?:number,
  *   files?:{path:string, filename:string, contentType:string, bytes:number}[], chapters?:{titulo:string, inicio:string}[], engine?:string}>}
@@ -572,8 +604,14 @@ async function generateAudio(reportText, dateLabel) {
     log('INFO', `Audio generado: ${(total / 60).toFixed(1)} min, ${chapters.length} capítulos, MP3 ${(mp3.bytes / 1e6).toFixed(1)} MB a ${mp3.bitrate}, M4A ${(m4a.bytes / 1e6).toFixed(1)} MB a ${m4a.bitrate}, en ${secs} s.`);
     if (!files.length) return { ok: false, reason: 'los archivos de audio exceden el tope de 18 MB (límite de 25 MB de Gmail con codificación base64)' };
 
+    // Segmentos sueltos para el podcast (un episodio por segmento)
+    const segs = [];
+    if (indicePcm) segs.push({ titulo: 'Índice', detalle: incl.map((x) => x.titulo), pcm: indicePcm });
+    incl.forEach((x, k) => segs.push({ titulo: x.titulo, detalle: x.detalle, pcm: r.pcms[k] }));
+    const segments = encodeSegments(segs, r.sampleRate, dir, dateLabel);
+
     const out = {
-      ok: true, minutes: total / 60, files, engine: r.engine,
+      ok: true, minutes: total / 60, files, engine: r.engine, segments,
       chapters: chapters.map((c) => ({ titulo: c.titulo, inicio: mmss(c.start) })),
     };
     if (r.failure) {
@@ -592,4 +630,4 @@ async function generateAudio(reportText, dateLabel) {
   }
 }
 
-module.exports = { generateAudio, buildSections, themeMap, splitText, parseReport, toPcm, findAudioData, marcaHablada, MAX_MP3_BYTES };
+module.exports = { generateAudio, encodeSegments, buildSections, themeMap, splitText, parseReport, toPcm, findAudioData, marcaHablada, MAX_MP3_BYTES };

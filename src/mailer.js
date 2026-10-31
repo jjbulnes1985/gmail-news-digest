@@ -149,7 +149,18 @@ function chaptersHtml(audio) {
   return `<br><span class="capitulos">Capítulos: ${audio.chapters.map((c) => `${escapeHtml(c.titulo)} ${c.inicio}`).join(' · ')}</span>`;
 }
 
-async function sendDigest(summaryText, audio = null) {
+/** Línea del podcast: enlace del feed y cómo suscribirse, o el motivo si no se actualizó. */
+function podcastHtml(podcast) {
+  if (!podcast || podcast.skipped) return '';
+  if (podcast.ok) {
+    return `<p class="audio-nota">🎙️ Podcast actualizado con ${podcast.episodes} episodios (uno por sección): `
+      + `<a href="${escapeHtml(podcast.feedUrl)}">${escapeHtml(podcast.feedUrl)}</a><br>`
+      + '<span class="capitulos">Para suscribirte una sola vez en el iPhone: Apple Podcasts › Biblioteca › ⋯ › Seguir un programa por URL, y pega el enlace.</span></p>\n';
+  }
+  return `<p class="audio-nota">Podcast no actualizado hoy: ${escapeHtml(podcast.reason || 'motivo desconocido')}</p>\n`;
+}
+
+async function sendDigest(summaryText, audio = null, podcast = null) {
   const today = santiagoDateDMY(Date.now()); // fecha de Chile, no la del runner (UTC)
 
   // Convertir el texto a HTML con estilos de email
@@ -168,6 +179,7 @@ async function sendDigest(summaryText, audio = null) {
   } else if (audio && audio.reason) {
     bodyHtml = `<p class="audio-nota">Audio no disponible hoy: ${escapeHtml(audio.reason)}</p>\n` + bodyHtml;
   }
+  bodyHtml = podcastHtml(podcast) + bodyHtml;
 
   // Plantilla HTML completa del email
   const htmlEmail = `<!DOCTYPE html>
@@ -369,4 +381,4 @@ async function sendAudioOnly(audio, dateDMY) {
   if (extra.length) await sendExtraAudio(extra, dateDMY, audio);
 }
 
-module.exports = { sendDigest, sendAudioOnly, convertToHtml, splitAudioFiles };
+module.exports = { sendDigest, sendAudioOnly, convertToHtml, splitAudioFiles, podcastHtml };

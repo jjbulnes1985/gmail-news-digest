@@ -17,6 +17,7 @@ const { authorize, getEmails, getLatestDigest } = require('./gmail');
 const { summarize }            = require('./summarizer');
 const { sendDigest, sendAudioOnly } = require('./mailer');
 const { generateAudio }        = require('./audio');
+const { publishPodcast, dmyToISO } = require('./podcast');
 const { log, saveLastRun, santiagoDate, getLastRunDate } = require('./utils');
 
 // Idempotencia: un solo informe por día calendario de Santiago. Los disparos
@@ -85,7 +86,9 @@ async function runDigest() {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Santiago',
     });
     const audio = await generateAudio(summary, dateLabel);
-    await sendDigest(summary, audio);
+    // Podcast por secciones (nunca lanza ni bloquea el correo)
+    const podcast = await publishPodcast(audio, today);
+    await sendDigest(summary, audio, podcast);
   } catch (err) {
     log('ERROR', `Fallo en envío del email: ${err.message}`);
     throw err;
@@ -110,6 +113,7 @@ async function runAudioOnly() {
   });
   const audio = await generateAudio(digest.text, dateLabel);
   if (!audio.ok) throw new Error(`audio no generado: ${audio.reason}`);
+  await publishPodcast(audio, dmyToISO(digest.dateDMY));
   await sendAudioOnly(audio, digest.dateDMY);
   log('INFO', `Audio del ${digest.dateDMY} enviado${audio.partial ? ' (parcial)' : ''}.`);
 }
