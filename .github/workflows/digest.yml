@@ -83,6 +83,10 @@ jobs:
 
       - name: Ejecutar pipeline
         run: node src/index.js ${{ inputs.modo == 'solo-audio' && '--audio-only' || '--run-now' }}
+        env:
+          # Podcast por secciones en GitHub Pages (rama gh-pages). Sin el secreto, no se publica.
+          GITHUB_TOKEN: ${{ github.token }}
+          PODCAST_PATH_TOKEN: ${{ secrets.PODCAST_PATH_TOKEN }}
 
       - name: Guardar last_run.json
         run: |
