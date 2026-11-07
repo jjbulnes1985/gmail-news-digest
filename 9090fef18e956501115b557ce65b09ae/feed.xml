@@ -1,0 +1,742 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Resumen Noticias</title>
+    <link>https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/</link>
+    <atom:link href="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/feed.xml" rel="self" type="application/rss+xml"/>
+    <language>es-cl</language>
+    <description>Resumen diario de noticias en audio, un episodio por sección (uso personal).</description>
+    <itunes:author>Resumen Noticias</itunes:author>
+    <itunes:type>serial</itunes:type>
+    <itunes:block>Yes</itunes:block>
+    <itunes:explicit>false</itunes:explicit>
+    <itunes:category text="News"/>
+    <item>
+      <title>07/11/2026 · 06 · Tecnología</title>
+      <description>19. Syz Group: Elecciones de mitad de período en EE.UU. y centros de datos — Tecnología (Medio)
+20. Syz Group: Estrategia &quot;full stack&quot; de Alphabet — Tecnología (Medio)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-07/06.mp3" length="703855" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-07-06</guid>
+      <pubDate>Sat, 07 Nov 2026 11:06:00 GMT</pubDate>
+      <itunes:title>07/11/2026 · 06 · Tecnología</itunes:title>
+      <itunes:duration>00:01:57</itunes:duration>
+      <itunes:season>20261107</itunes:season>
+      <itunes:episode>7</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>07/11/2026 · 05 · Empresas y Negocios</title>
+      <description>5. Reacciones de empresas chilenas en EE.UU. ante el nuevo panorama político tras las midterms — Empresas &amp; Negocios (Medio)
+9. Dr. Simi se enfoca en farmacias chicas como competencia y se prepara para el genérico de Ozempic — Empresas &amp; Negocios (Medio)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-07/05.mp3" length="898067" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-07-05</guid>
+      <pubDate>Sat, 07 Nov 2026 11:05:00 GMT</pubDate>
+      <itunes:title>07/11/2026 · 05 · Empresas y Negocios</itunes:title>
+      <itunes:duration>00:02:30</itunes:duration>
+      <itunes:season>20261107</itunes:season>
+      <itunes:episode>6</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>07/11/2026 · 04 · Economía y Finanzas</title>
+      <description>4. Inflación chilena empujada por combustibles supera meta del Banco Central (Alto)
+23. Syz Group: Binance afectada por un hackeo de 6.3 mil millones de dólares — Economía &amp; Finanzas (Alto)
+3. Ueno Bank y su impacto en el deporte paraguayo tras intervención financiera — Economía &amp; Finanzas (Medio)
+21. Syz Group: La privacidad como capa faltante en las finanzas institucionales — Economía &amp; Finanzas (Medio)
+25. Syz Group: Resumen semanal de mercados globales: índices bursátiles de EE.UU. cerraron mixtos — Economía &amp; Finanzas (Medio)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-07/04.mp3" length="2096931" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-07-04</guid>
+      <pubDate>Sat, 07 Nov 2026 11:04:00 GMT</pubDate>
+      <itunes:title>07/11/2026 · 04 · Economía y Finanzas</itunes:title>
+      <itunes:duration>00:05:49</itunes:duration>
+      <itunes:season>20261107</itunes:season>
+      <itunes:episode>5</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>07/11/2026 · 03 · Internacional</title>
+      <description>2. Congreso destituye al Presidente Peña y lo detiene en Paraguay por crisis política y financiera (Alto)
+13. Reflexiones sobre la destitución presidencial en Paraguay — Internacional (Medio)
+22. Syz Group: Análisis de las elecciones de mitad de período en EE.UU. — Internacional (Medio)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-07/03.mp3" length="1236759" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-07-03</guid>
+      <pubDate>Sat, 07 Nov 2026 11:03:00 GMT</pubDate>
+      <itunes:title>07/11/2026 · 03 · Internacional</itunes:title>
+      <itunes:duration>00:03:26</itunes:duration>
+      <itunes:season>20261107</itunes:season>
+      <itunes:episode>4</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>07/11/2026 · 02 · Política</title>
+      <description>1. Presidente Kast respalda a Ministro Rabat y opta por derogar la ley que permite rebajar condenas (Alto)
+7. Legisladores chilenos debaten reforma a la ley de rebaja de penas de 2022 — Política (Medio)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-07/02.mp3" length="845382" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-07-02</guid>
+      <pubDate>Sat, 07 Nov 2026 11:02:00 GMT</pubDate>
+      <itunes:title>07/11/2026 · 02 · Política</itunes:title>
+      <itunes:duration>00:02:21</itunes:duration>
+      <itunes:season>20261107</itunes:season>
+      <itunes:episode>3</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>07/11/2026 · 01 · Alertas del día</title>
+      <description>La crisis política en Paraguay ha escalado con la destitución y detención del Presidente Santiago Peña, generando incertidumbre y riesgos...
+Chile enfrenta una crisis gubernamental &quot;Alta&quot; debido a la polémica por la rebaja de condenas y la propuesta de derogación de la ley, con...
+El mercado de criptomonedas sufre un golpe significativo con el hackeo de 6.3 mil millones de dólares a Binance. Este evento destaca los ...</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-07/01.mp3" length="439767" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-07-01</guid>
+      <pubDate>Sat, 07 Nov 2026 11:01:00 GMT</pubDate>
+      <itunes:title>07/11/2026 · 01 · Alertas del día</itunes:title>
+      <itunes:duration>00:01:13</itunes:duration>
+      <itunes:season>20261107</itunes:season>
+      <itunes:episode>2</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>07/11/2026 · 00 · Índice</title>
+      <description>Alertas del día
+Política
+Internacional
+Economía y Finanzas
+Empresas y Negocios
+Tecnología</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-07/00.mp3" length="203550" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-07-00</guid>
+      <pubDate>Sat, 07 Nov 2026 11:00:00 GMT</pubDate>
+      <itunes:title>07/11/2026 · 00 · Índice</itunes:title>
+      <itunes:duration>00:00:34</itunes:duration>
+      <itunes:season>20261107</itunes:season>
+      <itunes:episode>1</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>06/11/2026 · 05 · Sociedad</title>
+      <description>5. Menores infractores alcanzan máximo desde 2019, con establecimientos educativos como segundo lugar de delitos (Medio)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-06/05.mp3" length="435783" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-06-05</guid>
+      <pubDate>Fri, 06 Nov 2026 11:05:00 GMT</pubDate>
+      <itunes:title>06/11/2026 · 05 · Sociedad</itunes:title>
+      <itunes:duration>00:01:12</itunes:duration>
+      <itunes:season>20261106</itunes:season>
+      <itunes:episode>6</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>06/11/2026 · 04 · Internacional</title>
+      <description>3. Dimisión de Santiago Peña en Paraguay por colapso bancario y juicio político en curso (Alto)
+4. Elecciones legislativas en EE.UU. perfilan sucesión de Trump y generan debate sobre impacto económico en Chile (Medio)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-06/04.mp3" length="859447" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-06-04</guid>
+      <pubDate>Fri, 06 Nov 2026 11:04:00 GMT</pubDate>
+      <itunes:title>06/11/2026 · 04 · Internacional</itunes:title>
+      <itunes:duration>00:02:23</itunes:duration>
+      <itunes:season>20261106</itunes:season>
+      <itunes:episode>5</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>06/11/2026 · 03 · Política</title>
+      <description>2. Presidente Kast regresa a Chile en medio de presiones oficialistas y acusación contra ministro Rabat (Medio)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-06/03.mp3" length="400517" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-06-03</guid>
+      <pubDate>Fri, 06 Nov 2026 11:03:00 GMT</pubDate>
+      <itunes:title>06/11/2026 · 03 · Política</itunes:title>
+      <itunes:duration>00:01:07</itunes:duration>
+      <itunes:season>20261106</itunes:season>
+      <itunes:episode>4</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>06/11/2026 · 02 · Energía y Minería</title>
+      <description>1. Irregularidades en Codelco superan US$140 millones y Gobierno acusa &quot;engaño&quot; (Alto)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-06/02.mp3" length="522632" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-06-02</guid>
+      <pubDate>Fri, 06 Nov 2026 11:02:00 GMT</pubDate>
+      <itunes:title>06/11/2026 · 02 · Energía y Minería</itunes:title>
+      <itunes:duration>00:01:27</itunes:duration>
+      <itunes:season>20261106</itunes:season>
+      <itunes:episode>3</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>06/11/2026 · 01 · Alertas del día</title>
+      <description>Graves irregularidades en Codelco, que superan los US$140 millones, generarán un escrutinio sin precedentes sobre la gobernanza de las em...
+La renuncia del Presidente de Paraguay, Santiago Peña, ante el colapso de un banco vinculado a su gobierno y la apertura de un juicio pol...
+El retorno de Presidente Kast a Chile bajo presión de su coalición y la inminente acusación constitucional contra el Ministro de Justicia...</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-06/01.mp3" length="444260" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-06-01</guid>
+      <pubDate>Fri, 06 Nov 2026 11:01:00 GMT</pubDate>
+      <itunes:title>06/11/2026 · 01 · Alertas del día</itunes:title>
+      <itunes:duration>00:01:14</itunes:duration>
+      <itunes:season>20261106</itunes:season>
+      <itunes:episode>2</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>06/11/2026 · 00 · Índice</title>
+      <description>Alertas del día
+Energía y Minería
+Política
+Internacional
+Sociedad</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-06/00.mp3" length="178891" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-06-00</guid>
+      <pubDate>Fri, 06 Nov 2026 11:00:00 GMT</pubDate>
+      <itunes:title>06/11/2026 · 00 · Índice</itunes:title>
+      <itunes:duration>00:00:30</itunes:duration>
+      <itunes:season>20261106</itunes:season>
+      <itunes:episode>1</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>05/11/2026 · 04 · Sociedad</title>
+      <description>6. Escalada de violencia e inseguridad en comunas de Santiago (Medio)
+7. Excomandante en jefe del Ejército Óscar Izurieta condenado por lavado de activos (Medio)
+8. Debate sobre futuro de beneficios a reos: foco en víctimas y comisiones evaluadoras (Medio)
+14. Mascotas envenenadas en caniles de Las Condes generan investigación judicial (Medio)
+15. Investigan motivos de trabajador de aeropuerto que repartió gomitas con droga a compañeros (Medio)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-05/04.mp3" length="1645460" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-05-04</guid>
+      <pubDate>Thu, 05 Nov 2026 11:04:00 GMT</pubDate>
+      <itunes:title>05/11/2026 · 04 · Sociedad</itunes:title>
+      <itunes:duration>00:04:34</itunes:duration>
+      <itunes:season>20261105</itunes:season>
+      <itunes:episode>5</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>05/11/2026 · 03 · Política</title>
+      <description>3. Subrei de Chile evalúa con “responsabilidad y pragmatismo” el giro político en EE.UU. (Medio)
+4. Gobierno chileno evalúa “reforzamiento político” tras acusación constitucional contra ministro Rabat (Medio)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-05/03.mp3" length="700663" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-05-03</guid>
+      <pubDate>Thu, 05 Nov 2026 11:03:00 GMT</pubDate>
+      <itunes:title>05/11/2026 · 03 · Política</itunes:title>
+      <itunes:duration>00:01:57</itunes:duration>
+      <itunes:season>20261105</itunes:season>
+      <itunes:episode>4</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>05/11/2026 · 02 · Internacional</title>
+      <description>1. Derrota republicana en elecciones de medio mandato en EE.UU. condiciona últimos dos años de administración Trump (Alto)
+2. Malestar por alto costo de la vida y guerra en Irán reconfiguran mapa político de EE.UU. (Alto)
+10. Editorial &quot;El Mercurio&quot;: &quot;Trump y los republicanos, humillados&quot; (Medio)
+11. Columna de John Muller: &quot;Tsunami electoral en Estados Unidos: el poder del ruido&quot; (Medio)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-05/02.mp3" length="1626348" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-05-02</guid>
+      <pubDate>Thu, 05 Nov 2026 11:02:00 GMT</pubDate>
+      <itunes:title>05/11/2026 · 02 · Internacional</itunes:title>
+      <itunes:duration>00:04:31</itunes:duration>
+      <itunes:season>20261105</itunes:season>
+      <itunes:episode>3</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>05/11/2026 · 01 · Alertas del día</title>
+      <description>La contundente derrota del Partido Republicano en las elecciones de medio mandato en EE.UU., que cede el control de ambas cámaras del Con...
+La creciente escalada de violencia e inseguridad en comunas de Santiago, evidenciada por disparos en funerales y un violento robo con sec...
+La condena por lavado de activos al excomandante en jefe del Ejército Óscar Izurieta, utilizando fondos de gastos reservados, resalta rie...</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-05/01.mp3" length="577014" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-05-01</guid>
+      <pubDate>Thu, 05 Nov 2026 11:01:00 GMT</pubDate>
+      <itunes:title>05/11/2026 · 01 · Alertas del día</itunes:title>
+      <itunes:duration>00:01:36</itunes:duration>
+      <itunes:season>20261105</itunes:season>
+      <itunes:episode>2</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>05/11/2026 · 00 · Índice</title>
+      <description>Alertas del día
+Internacional
+Política
+Sociedad</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-05/00.mp3" length="156006" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-05-00</guid>
+      <pubDate>Thu, 05 Nov 2026 11:00:00 GMT</pubDate>
+      <itunes:title>05/11/2026 · 00 · Índice</itunes:title>
+      <itunes:duration>00:00:26</itunes:duration>
+      <itunes:season>20261105</itunes:season>
+      <itunes:episode>1</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>04/11/2026 · 08 · Tecnología</title>
+      <description>17. De refrigeradores en supermercados a alertas de emergencia: los nuevos objetivos de los hackers (Medio)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-04/08.mp3" length="415783" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-04-08</guid>
+      <pubDate>Wed, 04 Nov 2026 11:08:00 GMT</pubDate>
+      <itunes:title>04/11/2026 · 08 · Tecnología</itunes:title>
+      <itunes:duration>00:01:09</itunes:duration>
+      <itunes:season>20261104</itunes:season>
+      <itunes:episode>9</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>04/11/2026 · 07 · Sociedad</title>
+      <description>9. Comisiones encargadas pueden proponer reducir condenas pese a informes negativos y ausencia de tratamientos (Medio)
+13. Carta al Director: &quot;Funerales de alto riesgo&quot; (Medio)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-04/07.mp3" length="734734" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-04-07</guid>
+      <pubDate>Wed, 04 Nov 2026 11:07:00 GMT</pubDate>
+      <itunes:title>04/11/2026 · 07 · Sociedad</itunes:title>
+      <itunes:duration>00:02:02</itunes:duration>
+      <itunes:season>20261104</itunes:season>
+      <itunes:episode>8</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>04/11/2026 · 06 · Empresas y Negocios</title>
+      <description>6. “De extrema gravedad”: Camioneros bloquean sitios extraportuarios de San Antonio previo al comienzo de las exportaciones de cerezas (Alto)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-04/06.mp3" length="432258" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-04-06</guid>
+      <pubDate>Wed, 04 Nov 2026 11:06:00 GMT</pubDate>
+      <itunes:title>04/11/2026 · 06 · Empresas y Negocios</itunes:title>
+      <itunes:duration>00:01:12</itunes:duration>
+      <itunes:season>20261104</itunes:season>
+      <itunes:episode>7</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>04/11/2026 · 05 · Economía y Finanzas</title>
+      <description>5. Viviendas sin vender y espera por nueva ordenanza explican cuarto mes de caída de permisos de edificación (Medio)
+12. Editorial: &quot;Políticas de empleo más activas&quot; (Medio)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-04/05.mp3" length="694945" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-04-05</guid>
+      <pubDate>Wed, 04 Nov 2026 11:05:00 GMT</pubDate>
+      <itunes:title>04/11/2026 · 05 · Economía y Finanzas</itunes:title>
+      <itunes:duration>00:01:56</itunes:duration>
+      <itunes:season>20261104</itunes:season>
+      <itunes:episode>6</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>04/11/2026 · 04 · Energía y Minería</title>
+      <description>4. Ministro Mas difiere de Quiroz sobre el “lastre minero”; este año firmas privadas harán aporte récord al fisco (Medio)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-04/04.mp3" length="444793" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-04-04</guid>
+      <pubDate>Wed, 04 Nov 2026 11:04:00 GMT</pubDate>
+      <itunes:title>04/11/2026 · 04 · Energía y Minería</itunes:title>
+      <itunes:duration>00:01:14</itunes:duration>
+      <itunes:season>20261104</itunes:season>
+      <itunes:episode>5</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>04/11/2026 · 03 · Política</title>
+      <description>3. Presidente Kast apela a reglas claras, permisos más ágiles y la responsabilidad fiscal para atraer inversiones desde Europa (Alto)
+7. Chile Vamos pide dar más densidad política a ministerios para evitar errores como el de Rabat (Medio)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-04/03.mp3" length="872974" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-04-03</guid>
+      <pubDate>Wed, 04 Nov 2026 11:03:00 GMT</pubDate>
+      <itunes:title>04/11/2026 · 03 · Política</itunes:title>
+      <itunes:duration>00:02:25</itunes:duration>
+      <itunes:season>20261104</itunes:season>
+      <itunes:episode>4</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>04/11/2026 · 02 · Internacional</title>
+      <description>1. Demócratas logran el control del Congreso y Trump dice estar “dispuesto a aceptar los resultados” (Alto)
+2. Demócratas confirman su victoria y retoman control total del Congreso, en duro revés para Trump (Alto)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-04/02.mp3" length="813111" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-04-02</guid>
+      <pubDate>Wed, 04 Nov 2026 11:02:00 GMT</pubDate>
+      <itunes:title>04/11/2026 · 02 · Internacional</itunes:title>
+      <itunes:duration>00:02:15</itunes:duration>
+      <itunes:season>20261104</itunes:season>
+      <itunes:episode>3</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>04/11/2026 · 01 · Alertas del día</title>
+      <description>Estados Unidos: Inestabilidad Política Potencial. La victoria demócrata en ambas cámaras del Congreso de EE.UU., sumada a la permanencia ...
+Chile: Riesgos en Logística y Exportaciones Clave. El bloqueo de camioneros en San Antonio, previo a la temporada alta de cerezas, repres...
+Chile: Debilidad en Sectores Clave y Desempleo. La contracción en la producción de cobre, la caída en los permisos de edificación, el sto...</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-04/01.mp3" length="645096" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-04-01</guid>
+      <pubDate>Wed, 04 Nov 2026 11:01:00 GMT</pubDate>
+      <itunes:title>04/11/2026 · 01 · Alertas del día</itunes:title>
+      <itunes:duration>00:01:47</itunes:duration>
+      <itunes:season>20261104</itunes:season>
+      <itunes:episode>2</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>04/11/2026 · 00 · Índice</title>
+      <description>Alertas del día
+Internacional
+Política
+Energía y Minería
+Economía y Finanzas
+Empresas y Negocios
+Sociedad
+Tecnología</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-04/00.mp3" length="243210" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-04-00</guid>
+      <pubDate>Wed, 04 Nov 2026 11:00:00 GMT</pubDate>
+      <itunes:title>04/11/2026 · 00 · Índice</itunes:title>
+      <itunes:duration>00:00:40</itunes:duration>
+      <itunes:season>20261104</itunes:season>
+      <itunes:episode>1</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>03/11/2026 · 06 · Energía y Minería</title>
+      <description>17. La producción de cobre de este año será la más baja en más de 20 años, según proyecta el coordinador macroeconómico de Hacienda, Alejandro Guin-Po Bon (Alto)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-03/06.mp3" length="308531" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-03-06</guid>
+      <pubDate>Tue, 03 Nov 2026 11:06:00 GMT</pubDate>
+      <itunes:title>03/11/2026 · 06 · Energía y Minería</itunes:title>
+      <itunes:duration>00:00:51</itunes:duration>
+      <itunes:season>20261103</itunes:season>
+      <itunes:episode>7</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>03/11/2026 · 05 · Tecnología</title>
+      <description>14. IA supera a los influencers para comparar, resolver dudas y revisar reseñas antes de hacer compras (Medio)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-03/05.mp3" length="256481" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-03-05</guid>
+      <pubDate>Tue, 03 Nov 2026 11:05:00 GMT</pubDate>
+      <itunes:title>03/11/2026 · 05 · Tecnología</itunes:title>
+      <itunes:duration>00:00:43</itunes:duration>
+      <itunes:season>20261103</itunes:season>
+      <itunes:episode>6</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>03/11/2026 · 04 · Política</title>
+      <description>5. Legisladores de oposición concentran más del 80% del “tsunami” de 3.800 indicaciones (Medio)
+6. Ejecutivo alcanza un acuerdo con gobernadores equilibrando las “aspiraciones de las regiones” y “las necesidades de eficiencia” (Medio)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-03/04.mp3" length="518224" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-03-04</guid>
+      <pubDate>Tue, 03 Nov 2026 11:04:00 GMT</pubDate>
+      <itunes:title>03/11/2026 · 04 · Política</itunes:title>
+      <itunes:duration>00:01:26</itunes:duration>
+      <itunes:season>20261103</itunes:season>
+      <itunes:episode>5</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>03/11/2026 · 03 · Internacional</title>
+      <description>2. Trump tilda de “extremistas” a demócratas y defiende su gestión antes de elecciones legislativas (Medio)
+15. Intensa campaña presidencial (Medio)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-03/03.mp3" length="490179" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-03-03</guid>
+      <pubDate>Tue, 03 Nov 2026 11:03:00 GMT</pubDate>
+      <itunes:title>03/11/2026 · 03 · Internacional</itunes:title>
+      <itunes:duration>00:01:22</itunes:duration>
+      <itunes:season>20261103</itunes:season>
+      <itunes:episode>4</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>03/11/2026 · 02 · Economía y Finanzas</title>
+      <description>1. Economía chilena avanza a “dos velocidades”: Repuntes del comercio y la industria sostienen un leve crecimiento ante una nueva caída de la minería (Medio)
+9. Editorial: &quot;Imacec de septiembre&quot; (Medio)
+10. Columna de Eugenio Tironi: &quot;¿Y si la receta está vencida?&quot; (Medio)
+16. Urgencia por generar empleos: menos trámites y adjudicación en cinco días, las medidas “exprés” del Ministerio de Obras Públicas para crear 23 mil puestos de trabajo extras (Medio)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-03/02.mp3" length="1106628" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-03-02</guid>
+      <pubDate>Tue, 03 Nov 2026 11:02:00 GMT</pubDate>
+      <itunes:title>03/11/2026 · 02 · Economía y Finanzas</itunes:title>
+      <itunes:duration>00:03:04</itunes:duration>
+      <itunes:season>20261103</itunes:season>
+      <itunes:episode>3</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>03/11/2026 · 01 · Alertas del día</title>
+      <description>Desempeño Dual de la Economía Chilena: La divergencia entre el sector minero en fuerte declive (producción de cobre en mínimos de 20 años...
+Incertidumbre Política en EE.UU. y su Impacto Regional: El resultado de las elecciones legislativas de medio término en EE.UU., donde se ...
+Debate Presupuestario Chileno: Las extensas negociaciones y la gran cantidad de indicaciones presentadas por la oposición en la Ley de Pr...</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-03/01.mp3" length="471688" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-03-01</guid>
+      <pubDate>Tue, 03 Nov 2026 11:01:00 GMT</pubDate>
+      <itunes:title>03/11/2026 · 01 · Alertas del día</itunes:title>
+      <itunes:duration>00:01:18</itunes:duration>
+      <itunes:season>20261103</itunes:season>
+      <itunes:episode>2</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>03/11/2026 · 00 · Índice</title>
+      <description>Alertas del día
+Economía y Finanzas
+Internacional
+Política
+Tecnología
+Energía y Minería</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-03/00.mp3" length="204594" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-03-00</guid>
+      <pubDate>Tue, 03 Nov 2026 11:00:00 GMT</pubDate>
+      <itunes:title>03/11/2026 · 00 · Índice</itunes:title>
+      <itunes:duration>00:00:34</itunes:duration>
+      <itunes:season>20261103</itunes:season>
+      <itunes:episode>1</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>02/11/2026 · 06 · Empresas y Negocios</title>
+      <description>16. Cerezas y hortalizas, las más afectadas por eventos climáticos en zona centro-sur (Alto)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-02/06.mp3" length="414957" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-02-06</guid>
+      <pubDate>Mon, 02 Nov 2026 11:06:00 GMT</pubDate>
+      <itunes:title>02/11/2026 · 06 · Empresas y Negocios</itunes:title>
+      <itunes:duration>00:01:09</itunes:duration>
+      <itunes:season>20261102</itunes:season>
+      <itunes:episode>7</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>02/11/2026 · 05 · Sociedad</title>
+      <description>7. Alerta por creciente uso de drones en cárceles: La vía del crimen organizado para ingresar droga y celulares (Alto)
+8. Francisca Werth (UC): “Perdemos múltiples oportunidades de interrumpir que jóvenes lleguen al crimen organizado” (Medio)
+9. Menos colegios, cursos más pequeños e impacto en universidades por baja natalidad (Medio)
+15. El bien común bajo asedio: Chilenos son drásticos con la basura, pero permisivos con la piratería o el no pago de tag (Medio)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-02/05.mp3" length="1492800" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-02-05</guid>
+      <pubDate>Mon, 02 Nov 2026 11:05:00 GMT</pubDate>
+      <itunes:title>02/11/2026 · 05 · Sociedad</itunes:title>
+      <itunes:duration>00:04:09</itunes:duration>
+      <itunes:season>20261102</itunes:season>
+      <itunes:episode>6</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>02/11/2026 · 04 · Economía y Finanzas</title>
+      <description>5. Proyectos por US$46 mil millones y 120 mil empleos en espera por “permisología” frenan reactivación en 2027 (Alto)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-02/04.mp3" length="440505" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-02-04</guid>
+      <pubDate>Mon, 02 Nov 2026 11:04:00 GMT</pubDate>
+      <itunes:title>02/11/2026 · 04 · Economía y Finanzas</itunes:title>
+      <itunes:duration>00:01:13</itunes:duration>
+      <itunes:season>20261102</itunes:season>
+      <itunes:episode>5</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>02/11/2026 · 03 · Internacional</title>
+      <description>3. Vuelcos en estados clave e influencia del voto latino definirán contienda por el Congreso de EE.UU. (Medio)
+4. Inversionistas donan más a republicanos que a demócratas por primera vez desde 2016 (Medio)
+12. Columna de Andrés Oppenheimer: “¿Será el principio del fin de la era Trump?” (Medio)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-02/03.mp3" length="1054893" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-02-03</guid>
+      <pubDate>Mon, 02 Nov 2026 11:03:00 GMT</pubDate>
+      <itunes:title>02/11/2026 · 03 · Internacional</itunes:title>
+      <itunes:duration>00:02:56</itunes:duration>
+      <itunes:season>20261102</itunes:season>
+      <itunes:episode>4</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>02/11/2026 · 02 · Política</title>
+      <description>1. “Tsunami” de 3.800 indicaciones complica la Ley de Presupuestos 2027 del Presidente Kast (Alto)
+2. Oposición anuncia acusación constitucional contra Ministro de Justicia Fernando Rabat (Medio)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-02/02.mp3" length="691885" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-02-02</guid>
+      <pubDate>Mon, 02 Nov 2026 11:02:00 GMT</pubDate>
+      <itunes:title>02/11/2026 · 02 · Política</itunes:title>
+      <itunes:duration>00:01:55</itunes:duration>
+      <itunes:season>20261102</itunes:season>
+      <itunes:episode>3</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>02/11/2026 · 01 · Alertas del día</title>
+      <description>El récord de 3.800 indicaciones a la Ley de Presupuestos 2027 en Chile eleva el riesgo de inestabilidad política y retrasos significativo...
+Proyectos por US$46 mil millones y 120 mil empleos están estancados en Chile por &quot;permisología&quot;, lo que compromete la reactivación económ...
+El incremento en el uso de drones para el ingreso de contrabando en cárceles chilenas es una señal de la creciente sofisticación del crim...</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-02/01.mp3" length="333290" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-02-01</guid>
+      <pubDate>Mon, 02 Nov 2026 11:01:00 GMT</pubDate>
+      <itunes:title>02/11/2026 · 01 · Alertas del día</itunes:title>
+      <itunes:duration>00:00:55</itunes:duration>
+      <itunes:season>20261102</itunes:season>
+      <itunes:episode>2</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>02/11/2026 · 00 · Índice</title>
+      <description>Alertas del día
+Política
+Internacional
+Economía y Finanzas
+Sociedad
+Empresas y Negocios</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-02/00.mp3" length="202399" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-02-00</guid>
+      <pubDate>Mon, 02 Nov 2026 11:00:00 GMT</pubDate>
+      <itunes:title>02/11/2026 · 00 · Índice</itunes:title>
+      <itunes:duration>00:00:34</itunes:duration>
+      <itunes:season>20261102</itunes:season>
+      <itunes:episode>1</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>01/11/2026 · 07 · Economía y Finanzas</title>
+      <description>9. Economistas proponen extender subsidio a la contratación para reducir desempleo en Chile (Medio)
+10. Lecciones tras caída del Fondo E ante la implementación de fondos generacionales (Medio)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-01/07.mp3" length="818394" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-01-07</guid>
+      <pubDate>Sun, 01 Nov 2026 11:07:00 GMT</pubDate>
+      <itunes:title>01/11/2026 · 07 · Economía y Finanzas</itunes:title>
+      <itunes:duration>00:02:16</itunes:duration>
+      <itunes:season>20261101</itunes:season>
+      <itunes:episode>8</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>01/11/2026 · 06 · Empresas y Negocios</title>
+      <description>8. Red Dávila alerta deuda de $73 mil millones de Fonasa y evalúa acciones judiciales (Alto)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-01/06.mp3" length="423266" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-01-06</guid>
+      <pubDate>Sun, 01 Nov 2026 11:06:00 GMT</pubDate>
+      <itunes:title>01/11/2026 · 06 · Empresas y Negocios</itunes:title>
+      <itunes:duration>00:01:10</itunes:duration>
+      <itunes:season>20261101</itunes:season>
+      <itunes:episode>7</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>01/11/2026 · 05 · Energía y Minería</title>
+      <description>7. Codelco revelará manipulación artificial de producción y potencial responsabilidad de ex-CEO Alvarado (Alto)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-01/05.mp3" length="391915" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-01-05</guid>
+      <pubDate>Sun, 01 Nov 2026 11:05:00 GMT</pubDate>
+      <itunes:title>01/11/2026 · 05 · Energía y Minería</itunes:title>
+      <itunes:duration>00:01:05</itunes:duration>
+      <itunes:season>20261101</itunes:season>
+      <itunes:episode>6</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>01/11/2026 · 04 · Internacional</title>
+      <description>6. Pragmatismo en la relación de Kast con Lula: Chile busca ventajas en entorno polarizado (Medio)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-01/04.mp3" length="360874" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-01-04</guid>
+      <pubDate>Sun, 01 Nov 2026 11:04:00 GMT</pubDate>
+      <itunes:title>01/11/2026 · 04 · Internacional</itunes:title>
+      <itunes:duration>00:01:00</itunes:duration>
+      <itunes:season>20261101</itunes:season>
+      <itunes:episode>5</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>01/11/2026 · 03 · Sociedad</title>
+      <description>4. Encuesta Bicentenario-UC revela baja en conflicto chileno-migrante, pero resurgimiento de conflicto de clase (Medio)
+18. Columna de Juan Carlos de la Llera e Ignacio Irarrázaval: Encuesta Bicentenario UC 2026 revela &quot;mapa de tensiones&quot; en Chile (Medio)
+19. Percepción de &quot;gran conflicto&quot; entre hombres y mujeres crece en Chile, según Encuesta Bicentenario UC (Medio)
+21. Conexión al Metro de Santiago: Reducción de tiempos de viaje, valorización de propiedades y temores de seguridad (Medio)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-01/03.mp3" length="1557690" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-01-03</guid>
+      <pubDate>Sun, 01 Nov 2026 11:03:00 GMT</pubDate>
+      <itunes:title>01/11/2026 · 03 · Sociedad</itunes:title>
+      <itunes:duration>00:04:19</itunes:duration>
+      <itunes:season>20261101</itunes:season>
+      <itunes:episode>4</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>01/11/2026 · 02 · Política</title>
+      <description>1. Crisis política en Chile por rebaja de condenas: Acusación contra Ministro Rabat, renuncia de subsecretario y conflicto interno (Alto)
+2. Portavoz del Gobierno defiende al Ministro Rabat y advierte a parlamentarios oficialistas (Medio)
+3. Analista político critica gestión de crisis del Gobierno y exige renuncia de Ministro Rabat (Medio)
+5. Izquierda dura chilena busca fortalecerse con “plan de lucha”, movilización y nuevos partidos (Medio)
+17. Columna de Carlos Peña: &quot;Un país disparatado&quot; ante crisis política actual (Medio)</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-01/02.mp3" length="1797494" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-01-02</guid>
+      <pubDate>Sun, 01 Nov 2026 11:02:00 GMT</pubDate>
+      <itunes:title>01/11/2026 · 02 · Política</itunes:title>
+      <itunes:duration>00:04:59</itunes:duration>
+      <itunes:season>20261101</itunes:season>
+      <itunes:episode>3</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>01/11/2026 · 01 · Alertas del día</title>
+      <description>La crisis política en Chile se agudiza con una inminente acusación constitucional contra el Ministro de Justicia, una investigación penal...
+Codelco enfrenta un escándalo por manipulación artificial de producción y potencial responsabilidad de su expresidente ejecutivo, lo que ...
+La Red Dávila alerta una deuda de $73 mil millones por parte de Fonasa, destacando una crisis financiera en el sector de salud público-pr...</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-01/01.mp3" length="332509" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-01-01</guid>
+      <pubDate>Sun, 01 Nov 2026 11:01:00 GMT</pubDate>
+      <itunes:title>01/11/2026 · 01 · Alertas del día</itunes:title>
+      <itunes:duration>00:00:55</itunes:duration>
+      <itunes:season>20261101</itunes:season>
+      <itunes:episode>2</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>01/11/2026 · 00 · Índice</title>
+      <description>Alertas del día
+Política
+Sociedad
+Internacional
+Energía y Minería
+Empresas y Negocios
+Economía y Finanzas</description>
+      <enclosure url="https://jjbulnes1985.github.io/gmail-news-digest/9090fef18e956501115b557ce65b09ae/2026-11-01/00.mp3" length="225284" type="audio/mpeg"/>
+      <guid isPermaLink="false">resumen-noticias-2026-11-01-00</guid>
+      <pubDate>Sun, 01 Nov 2026 11:00:00 GMT</pubDate>
+      <itunes:title>01/11/2026 · 00 · Índice</itunes:title>
+      <itunes:duration>00:00:37</itunes:duration>
+      <itunes:season>20261101</itunes:season>
+      <itunes:episode>1</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+  </channel>
+</rss>
