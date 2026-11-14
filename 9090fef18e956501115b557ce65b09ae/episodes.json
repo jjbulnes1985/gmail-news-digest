@@ -1,0 +1,446 @@
+{
+  "updated": "2026-11-14T11:23:00.221Z",
+  "episodes": [
+    {
+      "date": "2026-11-08",
+      "n": 0,
+      "file": "2026-11-08/00.mp3",
+      "title": "08/11/2026 · 00 · Índice",
+      "description": "Alertas del día\nPolítica\nInternacional\nEconomía y Finanzas\nEmpresas y Negocios",
+      "bytes": 185630,
+      "seconds": 30.79972789115646
+    },
+    {
+      "date": "2026-11-08",
+      "n": 1,
+      "file": "2026-11-08/01.mp3",
+      "title": "08/11/2026 · 01 · Alertas del día",
+      "description": "La crisis política en Chile, derivada del respaldo del Presidente Kast al Ministro de Justicia Fernando Rabat, genera incertidumbre sobre...\nEl deterioro del mercado laboral chileno, reflejado en el significativo aumento de la demanda en las OMIL y la concentración de ofertas e...\nEl lento avance del plan de revitalización para La Vega y el persistente problema de bajas ventas e inseguridad en un sector comercial cl...",
+      "bytes": 393635,
+      "seconds": 65.47537414965987
+    },
+    {
+      "date": "2026-11-08",
+      "n": 2,
+      "file": "2026-11-08/02.mp3",
+      "title": "08/11/2026 · 02 · Política",
+      "description": "1. Crisis política en Chile por respaldo de Presidente Kast a Ministro de Justicia Fernando Rabat (Alto)\n2. Paulina Núñez sobre acusación constitucional a Ministro Rabat: “Las lealtades del oficialismo se miden en el Congreso” (Medio)\n12. Editorial El Mercurio: La derecha y las elecciones en EE.UU. (Medio)\n13. Columna de Carlos Peña: “La errada porfía del Presidente” sobre el modelo de autoridad (Medio)\n14. Columna de Joaquín García-Huidobro: “La derecha debería tomar nota” de la derrota de Trump (Medio)",
+      "bytes": 1613957,
+      "seconds": 268.86426303854876
+    },
+    {
+      "date": "2026-11-08",
+      "n": 3,
+      "file": "2026-11-08/03.mp3",
+      "title": "08/11/2026 · 03 · Internacional",
+      "description": "4. Economista Sebastián Edwards: Derrota de Trump en EE.UU. es positiva para Chile (Medio)",
+      "bytes": 323414,
+      "seconds": 53.784126984126985
+    },
+    {
+      "date": "2026-11-08",
+      "n": 4,
+      "file": "2026-11-08/04.mp3",
+      "title": "08/11/2026 · 04 · Economía y Finanzas",
+      "description": "7. Crisis laboral en Chile: Oficinas municipales de empleo reportan alza de hasta 63% en demanda y 91% en asesorías (Alto)\n5. Presidenta Sofofa Rosario Navarro sobre crecimiento económico: “Una megarreforma no lo resuelve todo” (Medio)\n6. Tomás Bunster y reactivación económica 2027: Minería como motor clave con US$21.000 millones en proyectos (Medio)",
+      "bytes": 1052869,
+      "seconds": 175.3491156462585
+    },
+    {
+      "date": "2026-11-08",
+      "n": 5,
+      "file": "2026-11-08/05.mp3",
+      "title": "08/11/2026 · 05 · Empresas y Negocios",
+      "description": "8. Crisis en La Vega: Bajas ventas e inseguridad persisten con plan de revitalización en lento avance (Medio)",
+      "bytes": 380634,
+      "seconds": 63.29605442176871
+    },
+    {
+      "date": "2026-11-09",
+      "n": 0,
+      "file": "2026-11-09/00.mp3",
+      "title": "09/11/2026 · 00 · Índice",
+      "description": "Alertas del día\nPolítica\nEconomía y Finanzas\nInternacional\nEmpresas y Negocios",
+      "bytes": 182650,
+      "seconds": 30.312108843537416
+    },
+    {
+      "date": "2026-11-09",
+      "n": 1,
+      "file": "2026-11-09/01.mp3",
+      "title": "09/11/2026 · 01 · Alertas del día",
+      "description": "Riesgo de inestabilidad política en Chile: La crisis en torno al ministro de Justicia y la potencial acusación constitucional, sumada a l...\nComplejidad en la discusión del Presupuesto 2027: La enorme cantidad de indicaciones a analizar en un plazo muy acotado introduce un ries...\nImpacto global de la derrota republicana en EE.UU.: La \"aplastante derrota\" del Partido Republicano podría reconfigurar las relaciones in...",
+      "bytes": 434384,
+      "seconds": 72.26721088435374
+    },
+    {
+      "date": "2026-11-09",
+      "n": 2,
+      "file": "2026-11-09/02.mp3",
+      "title": "09/11/2026 · 02 · Política",
+      "description": "1. Crisis política: Gobierno busca derogar norma de rebaja de penas; oposición alista acusación contra ministro de Justicia (Alto)\n3. Caso Rabat: La Moneda busca acotar crisis a derogación de ley, pero RN insiste en revisar conducción política (Alto)\n2. Discusión Presupuestaria: Cámara debe analizar casi 4.000 indicaciones en 26 horas, advierten \"callejón oscuro\" (Medio)",
+      "bytes": 1206915,
+      "seconds": 201.01877551020408
+    },
+    {
+      "date": "2026-11-09",
+      "n": 3,
+      "file": "2026-11-09/03.mp3",
+      "title": "09/11/2026 · 03 · Economía y Finanzas",
+      "description": "4. Corfo busca reformar para invertir en venture capital, incluyendo AFP (Medio)",
+      "bytes": 396933,
+      "seconds": 66.03433106575963
+    },
+    {
+      "date": "2026-11-09",
+      "n": 4,
+      "file": "2026-11-09/04.mp3",
+      "title": "09/11/2026 · 04 · Internacional",
+      "description": "5. Derrota republicana en EE.UU.: Trumpismo encuentra sus límites en Europa (Medio)\n9. Editorial: “¿Reinicio en relaciones EE.UU.-China?” tras derrota republicana (Medio)",
+      "bytes": 738916,
+      "seconds": 123.02616780045352
+    },
+    {
+      "date": "2026-11-09",
+      "n": 5,
+      "file": "2026-11-09/05.mp3",
+      "title": "09/11/2026 · 05 · Empresas y Negocios",
+      "description": "10. Temporada de cerezas 2026-2027: cosecha a la baja por El Niño, pero buenas perspectivas de venta a China (Medio)",
+      "bytes": 361824,
+      "seconds": 60.18290249433107
+    },
+    {
+      "date": "2026-11-10",
+      "n": 0,
+      "file": "2026-11-10/00.mp3",
+      "title": "10/11/2026 · 00 · Índice",
+      "description": "Alertas del día\nEconomía y Finanzas\nPolítica\nEnergía y Minería\nTecnología\nSociedad\nEmpresas y Negocios\nInternacional",
+      "bytes": 244406,
+      "seconds": 40.60358276643991
+    },
+    {
+      "date": "2026-11-10",
+      "n": 1,
+      "file": "2026-11-10/01.mp3",
+      "title": "10/11/2026 · 01 · Alertas del día",
+      "description": "La propuesta gubernamental de limitar el alza de combustibles a $20 por 90 días en Chile, en un contexto de protestas de camioneros y blo...\nLa crisis en el Ministerio de Justicia chileno por la rebaja de penas y el debate sobre la legislación penal genera incertidumbre polític...\nLas serias críticas a la gobernanza y transparencia en la alta dirección de Codelco, la principal minera estatal de Chile, pueden impacta...",
+      "bytes": 364639,
+      "seconds": 60.63233560090703
+    },
+    {
+      "date": "2026-11-10",
+      "n": 2,
+      "file": "2026-11-10/02.mp3",
+      "title": "10/11/2026 · 02 · Economía y Finanzas",
+      "description": "1. Gobierno chileno propone límite de $20 a alzas de combustibles por 90 días (Alto)\n9. Citación a Asamblea Extraordinaria de Aportantes de Fondo de Inversión Privado Mining (Medio)",
+      "bytes": 783756,
+      "seconds": 130.48480725623583
+    },
+    {
+      "date": "2026-11-10",
+      "n": 3,
+      "file": "2026-11-10/03.mp3",
+      "title": "10/11/2026 · 03 · Política",
+      "description": "2. Crisis en Ministerio de Justicia por rebaja de penas y cuestionamiento al sistema penal (Alto)\n6. Oposición chilena alista acusación constitucional contra ministro Rabat (Medio)\n7. Cámara despacha ley que permite a municipios con buen rendimiento conservar sus colegios hasta 2035 (Medio)",
+      "bytes": 1135133,
+      "seconds": 189.04888888888888
+    },
+    {
+      "date": "2026-11-10",
+      "n": 4,
+      "file": "2026-11-10/04.mp3",
+      "title": "10/11/2026 · 04 · Energía y Minería",
+      "description": "3. Cuestionamientos a la estructura de Codelco por falta de transparencia en la alta dirección (Alto)",
+      "bytes": 382981,
+      "seconds": 63.69079365079365
+    },
+    {
+      "date": "2026-11-10",
+      "n": 5,
+      "file": "2026-11-10/05.mp3",
+      "title": "10/11/2026 · 05 · Tecnología",
+      "description": "4. Caso Nvidia agudiza temores sobre espionaje de China en la carrera por la inteligencia artificial (Alto)",
+      "bytes": 396760,
+      "seconds": 66.0111111111111
+    },
+    {
+      "date": "2026-11-10",
+      "n": 6,
+      "file": "2026-11-10/06.mp3",
+      "title": "10/11/2026 · 06 · Sociedad",
+      "description": "5. Reducción de homicidios en Chile en 2026, pero con controversia por reducción de penas (Medio)",
+      "bytes": 393935,
+      "seconds": 65.53510204081633
+    },
+    {
+      "date": "2026-11-10",
+      "n": 7,
+      "file": "2026-11-10/07.mp3",
+      "title": "10/11/2026 · 07 · Empresas y Negocios",
+      "description": "8. Farmacias independientes cierran, grandes cadenas aceleran expansión en Chile (Medio)",
+      "bytes": 372484,
+      "seconds": 61.960907029478456
+    },
+    {
+      "date": "2026-11-10",
+      "n": 8,
+      "file": "2026-11-10/08.mp3",
+      "title": "10/11/2026 · 08 · Internacional",
+      "description": "10. Financiación para adaptación climática, foco de Chile en la COP31 en Turquía (Medio)",
+      "bytes": 372942,
+      "seconds": 62.03056689342404
+    },
+    {
+      "date": "2026-11-11",
+      "n": 0,
+      "file": "2026-11-11/00.mp3",
+      "title": "11/11/2026 · 00 · Índice",
+      "description": "Alertas del día\nEconomía y Finanzas\nPolítica",
+      "bytes": 142431,
+      "seconds": 23.609795918367347
+    },
+    {
+      "date": "2026-11-11",
+      "n": 1,
+      "file": "2026-11-11/01.mp3",
+      "title": "11/11/2026 · 01 · Alertas del día",
+      "description": "El paro de camioneros en Chile, liderado por el controvertido movimiento NO+TAG, está generando un impacto significativo en la cadena de ...\nLa persistente tensión política en Chile, marcada por la inminente acusación constitucional contra el Ministro de Justicia y las disputas...\nLa Fiscalía ha solicitado decretos al Ministerio de Justicia en el marco de la controversia por la rebaja de penas, con expertos advirtie...",
+      "bytes": 488676,
+      "seconds": 81.31473922902494
+    },
+    {
+      "date": "2026-11-11",
+      "n": 2,
+      "file": "2026-11-11/02.mp3",
+      "title": "11/11/2026 · 02 · Economía y Finanzas",
+      "description": "1. Paro de camioneros en Chile: Riesgo de escalada y impacto en exportaciones (Alto)\n12. Incertidumbre por paralización de camioneros y riesgo para exportaciones de cerezas (Alto)",
+      "bytes": 711875,
+      "seconds": 118.5065306122449
+    },
+    {
+      "date": "2026-11-11",
+      "n": 3,
+      "file": "2026-11-11/03.mp3",
+      "title": "11/11/2026 · 03 · Política",
+      "description": "2. Presidente Kast se reúne con oficialismo en medio de controversia por decretos de rebaja de penas (Medio)\n3. Oposición busca \"opacar\" aprobación de Presupuesto 2027 con acusación constitucional a Ministro Rabat (Medio)\n4. Ley de Presupuestos 2027: Rechazo de fondos para expresidentes y Ministerio del Interior (Medio)\n13. Fiscalía pide decretos a Justicia, expertos advierten riesgos constitucionales en suspensión de rebajas de penas (Medio)",
+      "bytes": 1321080,
+      "seconds": 220.05424036281178
+    },
+    {
+      "date": "2026-11-12",
+      "n": 0,
+      "file": "2026-11-12/00.mp3",
+      "title": "12/11/2026 · 00 · Índice",
+      "description": "Alertas del día\nEconomía y Finanzas\nPolítica\nSociedad\nEmpresas y Negocios\nEnergía y Minería\nTecnología\nInternacional",
+      "bytes": 245816,
+      "seconds": 40.83578231292517
+    },
+    {
+      "date": "2026-11-12",
+      "n": 1,
+      "file": "2026-11-12/01.mp3",
+      "title": "12/11/2026 · 01 · Alertas del día",
+      "description": "La admisión oficial de una recesión técnica en Chile por parte del ministro de Hacienda y el escepticismo de economistas sobre una rápida...\nLas tensiones geopolíticas globales se intensifican con las reuniones de enviados de Trump con Putin y las conversaciones entre EE.UU. y ...\nLa situación de Codelco, con acusaciones de campaña de desprestigio y la preocupación por sus pesadas deudas en un escenario de tasas de ...",
+      "bytes": 475764,
+      "seconds": 79.16689342403627
+    },
+    {
+      "date": "2026-11-12",
+      "n": 2,
+      "file": "2026-11-12/02.mp3",
+      "title": "12/11/2026 · 02 · Economía y Finanzas",
+      "description": "1. Economistas dudan que PIB chileno crezca 4% en 2028 tras admisión de recesión técnica (Alto)\n17. Bencinas y diésel en Chile suben por sexta vez consecutiva, alcanzando precios récord (Alto)\n21. Quiroz reconoce recesión económica en Chile y anticipa \"pronta recuperación\" (Alto)\n9. Moody’s proyecta economía mundial con petróleo caro y menor impulso de la IA para 2027 y 2028 (Medio)\n10. Acciones asiáticas caen 0,9% y terminan racha alcista por crisis de Nvidia (Medio)\n11. Riesgo país de Argentina podría oscilar entre 700 y 900 puntos hasta las elecciones, según Adcap (Medio)\n12. Exportaciones peruanas suman 75.536 millones hasta septiembre, acumulando 29 meses al alza (Medio)\n15. OCDE y nuamy imponen condiciones a Chile para ser un centro financiero regional (Medio)\n16. AFP reducen duración de cartera del Fondo E a su menor nivel en dos años en octubre (Medio)\n28. Columna de Sebastián Edwards: \"Las pesadas deudas de Codelco\" (Medio)",
+      "bytes": 3657330,
+      "seconds": 609.4153741496599
+    },
+    {
+      "date": "2026-11-12",
+      "n": 3,
+      "file": "2026-11-12/03.mp3",
+      "title": "12/11/2026 · 03 · Política",
+      "description": "2. Camioneros mantienen paro en Chile pese a la oferta del Gobierno de congelar combustibles hasta febrero (Alto)\n22. Impacto de la paralización de camioneros en Chile: basura, abastecimiento y pérdidas millonarias (Alto)\n24. Justicia chilena entrega más de 300 decretos de reducción de penas por delitos sexuales contra menores (Alto)\n14. Kast viaja con comitiva empresarial a China, Vietnam y Japón buscando oportunidades comerciales (Medio)\n27. Editorial de El Mercurio: \"El Partido Socialista y Codelco\" (Medio)",
+      "bytes": 1787149,
+      "seconds": 297.7266666666667
+    },
+    {
+      "date": "2026-11-12",
+      "n": 4,
+      "file": "2026-11-12/04.mp3",
+      "title": "12/11/2026 · 04 · Sociedad",
+      "description": "3. Crisis laboral en Chile: Mayores de 50 años tardan más de un año en encontrar empleo (Medio)\n30. Sondeo revela que más de la mitad de jóvenes chilenos cree que la educación los prepara poco o nada para el futuro (Medio)",
+      "bytes": 662891,
+      "seconds": 110.34471655328798
+    },
+    {
+      "date": "2026-11-12",
+      "n": 5,
+      "file": "2026-11-12/05.mp3",
+      "title": "12/11/2026 · 05 · Empresas y Negocios",
+      "description": "4. Pacheco acusa campaña de desprestigio contra Codelco y niega su venta (Medio)\n19. Mercado apuesta por repunte del retail en 2027, con acción de Falabella a la cabeza (Medio)\n20. Entel pone a la venta su operación en Perú, Millicom estaría interesado (Medio)",
+      "bytes": 1002557,
+      "seconds": 166.95342403628118
+    },
+    {
+      "date": "2026-11-12",
+      "n": 6,
+      "file": "2026-11-12/06.mp3",
+      "title": "12/11/2026 · 06 · Energía y Minería",
+      "description": "5. Precio del litio se duplica, Chile mantiene tercer lugar como productor mundial pero baja participación (Alto)",
+      "bytes": 389407,
+      "seconds": 64.75891156462585
+    },
+    {
+      "date": "2026-11-12",
+      "n": 7,
+      "file": "2026-11-12/07.mp3",
+      "title": "12/11/2026 · 07 · Tecnología",
+      "description": "6. Nuevo escándalo en Nvidia: Posible destitución del CEO por segunda relación extramarital (Medio)\n18. Estudio plantea que la IA podría generar trabajadores más informales y de menor calidad (Medio)",
+      "bytes": 671986,
+      "seconds": 111.87555555555555
+    },
+    {
+      "date": "2026-11-12",
+      "n": 8,
+      "file": "2026-11-12/08.mp3",
+      "title": "12/11/2026 · 08 · Internacional",
+      "description": "7. Enviados de Trump se reúnen con Putin en Moscú para avanzar negociaciones de paz en Ucrania (Alto)\n8. EEUU y China abordan agenda diplomática previo a encuentros entre Trump y Xi en APEC y G20 (Alto)\n23. Huelga nacional por el coste de la vida sacude España a semanas de las elecciones (Medio)",
+      "bytes": 1088593,
+      "seconds": 181.29342403628118
+    },
+    {
+      "date": "2026-11-13",
+      "n": 0,
+      "file": "2026-11-13/00.mp3",
+      "title": "13/11/2026 · 00 · Índice",
+      "description": "Alertas del día\nPolítica\nEconomía y Finanzas\nInternacional\nTecnología\nEmpresas y Negocios\nEnergía y Minería\nSociedad",
+      "bytes": 250833,
+      "seconds": 41.67170068027211
+    },
+    {
+      "date": "2026-11-13",
+      "n": 1,
+      "file": "2026-11-13/01.mp3",
+      "title": "13/11/2026 · 01 · Alertas del día",
+      "description": "La finalización del paro de camioneros en Chile normaliza la cadena de suministro, pero el costo fiscal del acuerdo, especialmente si el ...\nLa depreciación del peso chileno, acercándose a los $1.000 por dólar, impulsada por la caída del cobre y las declaraciones geopolíticas d...\nLa destitución del CEO de Nvidia y la caída de US$ 500 mil millones en su valor bursátil, junto con la confirmación de la exposición de L...",
+      "bytes": 319657,
+      "seconds": 53.14390022675737
+    },
+    {
+      "date": "2026-11-13",
+      "n": 2,
+      "file": "2026-11-13/02.mp3",
+      "title": "13/11/2026 · 02 · Política",
+      "description": "1. Acuerdo entre Gobierno y camioneros pone fin a paro, con rebaja del diésel y congelamiento de precios (Alto)\n8. Debate presupuestario: Gobierno repone fondos de Salud, pero rechazo a Minería por Codelco (Medio)\n12. La \"maraña política\" en torno a Codelco: Quiroz, directorio, oposición y Pacheco (Medio)\n24. Acusación constitucional contra el ministro de Justicia, Fernando Rabat, ingresada por la oposición sin votos asegurados (Medio)",
+      "bytes": 1439513,
+      "seconds": 239.79455782312925
+    },
+    {
+      "date": "2026-11-13",
+      "n": 3,
+      "file": "2026-11-13/03.mp3",
+      "title": "13/11/2026 · 03 · Economía y Finanzas",
+      "description": "2. Costo fiscal del acuerdo para congelar precios de combustibles aumenta (Alto)\n3. Dólar se dispara cerca de los $1.000 por caída del cobre y dichos de Trump sobre Irán (Alto)\n9. Desaceleración en la actividad de empresas de ingeniería en Chile (Medio)\n10. Bolsa chilena supera 10.600 puntos, mientras Wall Street cierra a la baja (Medio)\n14. Caída del Fondo E y amortiguación del golpe en pensiones por recálculo retroactivo (Medio)\n17. FMI ratifica Línea de Crédito Flexible a México, con reducción de monto (Medio)\n18. Brasil, México y Chile concentran la mayor parte de las utilidades bancarias en LatAm (Medio)\n20. IPC de Brasil repunta ligeramente a 4,63% interanual en octubre, pero se enfría a 0,14% mensual (Medio)\n22. Bitcoin cae bajo los US$70.000 por alza de rendimientos y presión sobre criptomonedas (Medio)",
+      "bytes": 2937448,
+      "seconds": 489.44598639455785
+    },
+    {
+      "date": "2026-11-13",
+      "n": 4,
+      "file": "2026-11-13/04.mp3",
+      "title": "13/11/2026 · 04 · Internacional",
+      "description": "4. Barril de Brent supera los 96 dólares tras dichos de Trump sobre Irán (Alto)\n16. Zelensky y Kushner confirman participación europea en negociaciones de paz con Rusia (Medio)",
+      "bytes": 655066,
+      "seconds": 109.05768707482993
+    },
+    {
+      "date": "2026-11-13",
+      "n": 5,
+      "file": "2026-11-13/05.mp3",
+      "title": "13/11/2026 · 05 · Tecnología",
+      "description": "5. Jensen Huang destituido como CEO de Nvidia, la compañía pierde US$ 500 mil millones en valor bursátil (Alto)\n7. América Latina expuesta a ciberataques contra operaciones físicas (Alto)\n15. Subtel cobrará US$2,6 millones a WOM por nuevo retraso en 5G (Medio)\n19. Líderes europeos debaten cómo acelerar el desarrollo de IA y reducir dependencia tecnológica de EE.UU. y China (Medio)\n23. Reportan caída de Microsoft en América; la compañía busca reducir impacto (Medio)",
+      "bytes": 1734021,
+      "seconds": 288.8865759637188
+    },
+    {
+      "date": "2026-11-13",
+      "n": 6,
+      "file": "2026-11-13/06.mp3",
+      "title": "13/11/2026 · 06 · Empresas y Negocios",
+      "description": "6. Entel confirma negociaciones avanzadas para vender su negocio en Perú a Millicom, con posible valor de US$ 1.000 millones (Alto)\n11. Grupo CAP alista venta de activos prescindibles por US$ 40 millones para reducir deuda (Medio)\n21. Mercedes-Benz analiza cierre de fábricas en Alemania por caída de ventas en China (Medio)",
+      "bytes": 995192,
+      "seconds": 165.7360544217687
+    },
+    {
+      "date": "2026-11-13",
+      "n": 7,
+      "file": "2026-11-13/07.mp3",
+      "title": "13/11/2026 · 07 · Energía y Minería",
+      "description": "13. Gerente general de ENAP, Julio Friedmann, presenta su renuncia (Medio)",
+      "bytes": 306496,
+      "seconds": 50.94136054421769
+    },
+    {
+      "date": "2026-11-13",
+      "n": 8,
+      "file": "2026-11-13/08.mp3",
+      "title": "13/11/2026 · 08 · Sociedad",
+      "description": "25. Juzgado ordena separar trama bielorrusa de indagatoria de Fundamenta y rebaja cautelar a Ángela Vivanco (Medio)",
+      "bytes": 341429,
+      "seconds": 56.76956916099773
+    },
+    {
+      "date": "2026-11-14",
+      "n": 0,
+      "file": "2026-11-14/00.mp3",
+      "title": "14/11/2026 · 00 · Índice",
+      "description": "Alertas del día\nEconomía y Finanzas\nPolítica\nTecnología\nInternacional",
+      "bytes": 185684,
+      "seconds": 30.811337868480727
+    },
+    {
+      "date": "2026-11-14",
+      "n": 1,
+      "file": "2026-11-14/01.mp3",
+      "title": "14/11/2026 · 01 · Alertas del día",
+      "description": "Riesgo Regulatorio y Geopolítico en Tecnología: La posible mayor supervisión de la IA en EE.UU. tras las elecciones y las acusaciones con...\nVolatilidad en Mercados por Políticas y Sector Tech: La mayor pérdida de valor en Wall Street en un día y la caída de las acciones de sem...\nIncertidumbre Fiscal y Regulatoria en Chile: La propuesta de invariabilidad tributaria para nuevos rubros y el debate de la ley de reajus...",
+      "bytes": 518293,
+      "seconds": 86.24394557823129
+    },
+    {
+      "date": "2026-11-14",
+      "n": 2,
+      "file": "2026-11-14/02.mp3",
+      "title": "14/11/2026 · 02 · Economía y Finanzas",
+      "description": "1. Invariabilidad tributaria para nuevos rubros y ajuste en cargos públicos (Alto)\n2. Fin del paro de camioneros y debate sobre camiones eléctricos (Medio)\n9. Mayor pérdida de valor en un día para Wall Street (Medio)",
+      "bytes": 1061073,
+      "seconds": 176.7074829931973
+    },
+    {
+      "date": "2026-11-14",
+      "n": 3,
+      "file": "2026-11-14/03.mp3",
+      "title": "14/11/2026 · 03 · Política",
+      "description": "3. Acusación constitucional contra Ministro de Justicia Rabat en Chile (Medio)\n6. Acuerdo con gremios camioneros: un dilema gubernamental (Medio)\n13. Debate interno en la coalición de gobierno chilena por acuerdos en seguridad (Medio)",
+      "bytes": 985192,
+      "seconds": 164.06421768707483
+    },
+    {
+      "date": "2026-11-14",
+      "n": 4,
+      "file": "2026-11-14/04.mp3",
+      "title": "14/11/2026 · 04 · Tecnología",
+      "description": "4. Escándalo Nvidia: China buscará acceso a chips por cualquier vía (Alto)\n10. Caída de semiconductores y preocupación por regulación de IA (Alto)\n8. IPO de Anthropic genera gran demanda, valorización de US$ 1.5tn (Medio)",
+      "bytes": 1163403,
+      "seconds": 193.76253968253968
+    },
+    {
+      "date": "2026-11-14",
+      "n": 5,
+      "file": "2026-11-14/05.mp3",
+      "title": "14/11/2026 · 05 · Internacional",
+      "description": "5. Caos aéreo en EE.UU. por fallas en sistemas de comunicación (Medio)",
+      "bytes": 354972,
+      "seconds": 59.02358276643991
+    }
+  ]
+}
